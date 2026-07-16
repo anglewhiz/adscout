@@ -1,6 +1,7 @@
 # Secrets — never commit real keys
 .env
 .env.local
+spyfu-vercel.env
 
 # Python
 __pycache__/
