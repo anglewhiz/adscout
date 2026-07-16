@@ -17,7 +17,8 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from adscout.web import AuthError, parse_ask_payload, run_analysis, status
+from adscout.web import (AuthError, parse_ask_payload, ping_provider,
+                         run_analysis, status)
 
 HERE = Path(__file__).resolve().parent
 INDEX_HTML = HERE / "public" / "index.html"
@@ -58,6 +59,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if self.path == "/api/status":
             self._send_json(status())
+            return
+        if self.path == "/api/ping-provider":
+            self._send_json(ping_provider())
             return
         self._send_json({"error": "not found"}, 404)
 

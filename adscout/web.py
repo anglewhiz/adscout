@@ -193,6 +193,40 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
     }
 
 
+def ping_provider() -> dict:
+    """Diagnose the data-provider (SpyFu) connection without exposing secrets.
+
+    Reports credential *shape* (lengths, present/placeholder, UUID-ish id) and
+    makes ONE real, cheap call to surface the provider's actual response — so a
+    401 vs 200 is unambiguous. No secret values are ever returned.
+    """
+    settings = Settings.load()
+    aid = settings.spyfu_api_id or ""
+    sec = settings.spyfu_secret_key or ""
+    info = {
+        "api_id_present": _real(aid),
+        "secret_present": _real(sec),
+        "api_id_len": len(aid),
+        "secret_len": len(sec),
+        "api_id_looks_like_uuid": bool(re.fullmatch(r"[0-9a-fA-F-]{32,40}", aid.strip())),
+        "api_id_has_whitespace": aid != aid.strip(),
+        "secret_has_whitespace": sec != sec.strip(),
+    }
+    if not (_real(aid) and _real(sec)):
+        info["ok"] = False
+        info["result"] = "Credentials are not set (empty or still the placeholder)."
+        return info
+    try:
+        with SpyFuClient(settings, mock=False) as c:
+            data = c.call("latest_domain_stats", domain="ebay.com", countryCode="US")
+        info["ok"] = True
+        info["result"] = f"OK — SpyFu accepted the credentials ({len(data.get('results') or [])} row(s))."
+    except Exception as exc:
+        info["ok"] = False
+        info["result"] = f"FAILED — {exc}"
+    return info
+
+
 def status() -> dict:
     """Report which credentials are configured (drives UI mode availability)."""
     settings = Settings.load()
