@@ -43,10 +43,18 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path in ("/", "/index.html"):
-            try:
+            # Local dev: serve the file directly. On Vercel the static file is
+            # NOT on the function's disk (public/ is served by the static CDN),
+            # so bounce "/" to the statically-served /index.html.
+            if INDEX_HTML.exists():
                 self._send_html(INDEX_HTML.read_bytes())
-            except FileNotFoundError:
-                self._send_json({"error": f"UI not found at {INDEX_HTML}"}, 500)
+            elif self.path == "/":
+                self.send_response(308)
+                self.send_header("Location", "/index.html")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+            else:
+                self._send_json({"error": "UI not found"}, 404)
             return
         if self.path == "/api/status":
             self._send_json(status())
