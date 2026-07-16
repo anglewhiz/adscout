@@ -9,5 +9,8 @@
       "maxDuration": 10,
       "includeFiles": "adscout/**"
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" }
+  ]
 }

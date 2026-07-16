@@ -1,0 +1,14 @@
+# Local-only files that must NOT be deployed to Vercel.
+# server.py is the LOCAL dev server — deploying it makes Vercel route the
+# homepage to it instead of serving the static public/index.html.
+server.py
+tests/
+pyproject.toml
+README.md
+.env
+.env.example
+_extracted/
+spyfu-analyst.zip
+*.log
+__pycache__/
+**/__pycache__/
