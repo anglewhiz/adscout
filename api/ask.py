@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from http.server import BaseHTTPRequestHandler
 
-from adscout.web import parse_ask_payload, run_analysis
+from adscout.web import AuthError, parse_ask_payload, run_analysis
 
 
 class handler(BaseHTTPRequestHandler):
@@ -37,7 +37,9 @@ class handler(BaseHTTPRequestHandler):
 
         try:
             self._json(run_analysis(
-                args["question"], mode=args["mode"],
-                country=args["country"], max_steps=args["max_steps"]))
+                args["question"], mode=args["mode"], country=args["country"],
+                max_steps=args["max_steps"], password=args["password"]))
+        except AuthError as exc:
+            self._json({"error": str(exc), "auth_required": True}, 401)
         except Exception as exc:  # surface a readable message to the UI
             self._json({"error": str(exc)}, 500)

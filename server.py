@@ -17,7 +17,7 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from adscout.web import parse_ask_payload, run_analysis, status
+from adscout.web import AuthError, parse_ask_payload, run_analysis, status
 
 HERE = Path(__file__).resolve().parent
 INDEX_HTML = HERE / "public" / "index.html"
@@ -72,8 +72,10 @@ class Handler(BaseHTTPRequestHandler):
 
         try:
             self._send_json(run_analysis(
-                args["question"], mode=args["mode"],
-                country=args["country"], max_steps=args["max_steps"]))
+                args["question"], mode=args["mode"], country=args["country"],
+                max_steps=args["max_steps"], password=args["password"]))
+        except AuthError as exc:
+            self._send_json({"error": str(exc), "auth_required": True}, 401)
         except Exception as exc:  # surface a readable message to the UI
             self._send_json({"error": str(exc)}, 500)
 

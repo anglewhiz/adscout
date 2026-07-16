@@ -69,6 +69,9 @@
   .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 16px; }
   @media (max-width: 620px) { .controls { grid-template-columns: 1fr; } }
   .hint { font-size: 11.5px; color: var(--muted); margin-top: 6px; min-height: 14px; }
+  .pw-wrap { margin-top: 16px; }
+  .pw-note { text-transform: none; letter-spacing: 0; }
+  .hidden { display: none !important; }
 
   .row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; }
   button.go {
@@ -160,6 +163,11 @@
       </div>
     </div>
 
+    <div id="pwWrap" class="pw-wrap hidden">
+      <label for="pw">Access password <span class="pw-note">(required for Mock/Live)</span></label>
+      <input id="pw" type="password" placeholder="Enter the shared access password" autocomplete="current-password" />
+    </div>
+
     <div class="row">
       <div class="statusline" id="status">Checking configuration…</div>
       <button class="go" id="go">Analyze</button>
@@ -206,9 +214,19 @@ async function loadStatus() {
     });
     applyAvailability();
     updateStatusLine();
+    // Restore a previously entered password for this tab.
+    const saved = sessionStorage.getItem("adscout_pw");
+    if (saved) $("pw").value = saved;
+    updatePwVisibility();
   } catch (e) {
     $("status").textContent = "Could not reach the server.";
   }
+}
+
+function updatePwVisibility() {
+  const paid = $("mode").value !== "demo";
+  const show = paid && CONFIG.auth_required;
+  $("pwWrap").classList.toggle("hidden", !show);
 }
 
 function applyAvailability() {
@@ -336,6 +354,15 @@ async function analyze() {
   if (!question) { $("q").focus(); return; }
 
   const mode = $("mode").value;
+  const password = $("pw").value;
+  if (mode !== "demo" && CONFIG.auth_required && !password) {
+    $("pwWrap").classList.remove("hidden");
+    $("pw").focus();
+    renderError("This mode requires the access password.");
+    return;
+  }
+  if (password) sessionStorage.setItem("adscout_pw", password);
+
   const btn = $("go");
   btn.disabled = true;
   const original = btn.textContent;
@@ -358,11 +385,19 @@ async function analyze() {
         mode,
         country: $("country").value,
         max_steps: parseInt($("steps").value, 10) || 8,
+        password,
       }),
     });
     const data = await r.json();
-    if (!r.ok || data.error) renderError(data.error || `Request failed (${r.status}).`);
-    else renderResult(data);
+    if (!r.ok || data.error) {
+      if (data.auth_required) {
+        $("pwWrap").classList.remove("hidden");
+        $("pw").focus();
+      }
+      renderError(data.error || `Request failed (${r.status}).`);
+    } else {
+      renderResult(data);
+    }
   } catch (e) {
     renderError("Network error: " + e.message);
   } finally {
@@ -372,7 +407,7 @@ async function analyze() {
 }
 
 $("go").onclick = analyze;
-$("mode").addEventListener("change", updateModeHint);
+$("mode").addEventListener("change", () => { updateModeHint(); updatePwVisibility(); });
 $("q").addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") analyze();
 });

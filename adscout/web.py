@@ -12,6 +12,8 @@ Modes:
 
 from __future__ import annotations
 
+import hmac
+import os
 import re
 from types import SimpleNamespace
 
@@ -27,6 +29,34 @@ _PLACEHOLDERS = {"", "your_secret_key", "00000000-0000-0000-0000-000000000000"}
 def _real(value: str | None) -> bool:
     """True only for a credential that looks genuinely set (not a placeholder)."""
     return bool(value) and value not in _PLACEHOLDERS and "..." not in value
+
+
+class AuthError(RuntimeError):
+    """Raised when a password-protected mode is requested without a valid password."""
+
+
+def _access_password() -> str:
+    """The shared password gating the paid (mock/live) modes, if configured.
+
+    Set ACCESS_PASSWORD (or ADSCOUT_PASSWORD) in the environment / Vercel to
+    require a password for Mock and Live. Leave it unset to keep those modes
+    open (typical for local development). Demo is never gated.
+    """
+    return (os.getenv("ACCESS_PASSWORD") or os.getenv("ADSCOUT_PASSWORD") or "").strip()
+
+
+def _check_access(mode: str, password: str) -> None:
+    """Enforce the password gate for paid modes. Raises AuthError if it fails."""
+    if mode == "demo":
+        return
+    expected = _access_password()
+    if not expected:
+        return  # no gate configured
+    if not hmac.compare_digest((password or "").strip(), expected):
+        raise AuthError(
+            "This mode is password-protected. Enter the access password to run "
+            "Mock or Live analyses. (Demo mode is always open.)"
+        )
 
 # --------------------------------------------------------------------------
 # Demo mode: a scripted "Claude" that needs no API key.
@@ -107,8 +137,11 @@ class _DemoAnthropic:
 # Public entry points used by the HTTP layers.
 # --------------------------------------------------------------------------
 
-def run_analysis(question: str, *, mode: str, country: str, max_steps: int) -> dict:
+def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
+                 password: str = "") -> dict:
     """Run one analysis and return a JSON-serializable result dict."""
+    _check_access(mode, password)
+
     settings = Settings.load()
     if country:
         settings.default_country = country
@@ -166,6 +199,7 @@ def status() -> dict:
     return {
         "has_anthropic": _real(settings.anthropic_api_key),
         "has_provider": _real(settings.spyfu_api_id) and _real(settings.spyfu_secret_key),
+        "auth_required": bool(_access_password()),
         "model": settings.model,
         "default_country": settings.default_country,
         "countries": COUNTRY_CODES,
@@ -185,5 +219,6 @@ def parse_ask_payload(payload: dict) -> dict:
         max_steps = max(1, min(12, int(payload.get("max_steps", 8))))
     except (TypeError, ValueError):
         max_steps = 8
+    password = str(payload.get("password") or "")
     return {"question": question, "mode": mode, "country": country,
-            "max_steps": max_steps}
+            "max_steps": max_steps, "password": password}
