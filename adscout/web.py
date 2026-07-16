@@ -212,7 +212,7 @@ def ping_provider() -> dict:
     sec = settings.spyfu_secret_key or ""
     basic = settings.spyfu_basic_auth or ""
     info = {
-        "auth_mode": "base64" if _real(basic) else "id+secret",
+        "auth_mode": settings.auth_mode(),
         "basic_auth_present": _real(basic),
         "basic_auth_len": len(basic),
         "api_id_present": _real(aid),
