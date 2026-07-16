@@ -227,14 +227,43 @@ def ping_provider() -> dict:
         info["ok"] = False
         info["result"] = "Credentials are not set (empty or still the placeholder)."
         return info
+
+    # Raw probes so we can see SpyFu's ACTUAL status code + body (our client
+    # normally hides the 401 body behind a generic message).
+    import httpx
+    from .endpoints import ENDPOINTS
+
+    ep = ENDPOINTS["latest_domain_stats"]
+    url = ep.url()
+    params = {"domain": "ebay.com", "countryCode": "US"}
+    info["probe_url"] = url
+    probes = {}
+
+    # A) HTTP Basic auth — exactly what the app uses.
     try:
-        with SpyFuClient(settings, mock=False) as c:
-            data = c.call("latest_domain_stats", domain="ebay.com", countryCode="US")
-        info["ok"] = True
-        info["result"] = f"OK — SpyFu accepted the credentials ({len(data.get('results') or [])} row(s))."
+        token = settings.basic_auth_token()
+        r = httpx.get(url, params=params,
+                      headers={"Authorization": f"Basic {token}", "Accept": "application/json"},
+                      timeout=25.0)
+        probes["basic_auth"] = {"status": r.status_code, "body": r.text[:400]}
     except Exception as exc:
-        info["ok"] = False
-        info["result"] = f"FAILED — {exc}"
+        probes["basic_auth"] = {"error": str(exc)}
+
+    # B) api_key query param (SpyFu's alternative: secret key in the URL). Only
+    #    meaningful when we have a raw secret (not the pre-generated Base64).
+    if settings.auth_mode() == "id+secret" and _real(sec):
+        try:
+            r = httpx.get(url, params={**params, "api_key": sec.strip()},
+                          headers={"Accept": "application/json"}, timeout=25.0)
+            probes["api_key_query"] = {"status": r.status_code, "body": r.text[:400]}
+        except Exception as exc:
+            probes["api_key_query"] = {"error": str(exc)}
+
+    info["probes"] = probes
+    ok = any(isinstance(p, dict) and p.get("status") == 200 for p in probes.values())
+    info["ok"] = ok
+    info["result"] = ("OK — SpyFu accepted the credentials."
+                      if ok else "FAILED — see 'probes' for SpyFu's exact response.")
     return info
 
 
