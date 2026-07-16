@@ -31,6 +31,13 @@ def _real(value: str | None) -> bool:
     return bool(value) and value not in _PLACEHOLDERS and "..." not in value
 
 
+def _provider_ready(settings) -> bool:
+    """True if provider auth is usable: a real Base64 token, or real id+secret."""
+    if _real(settings.spyfu_basic_auth):
+        return True
+    return _real(settings.spyfu_api_id) and _real(settings.spyfu_secret_key)
+
+
 class AuthError(RuntimeError):
     """Raised when a password-protected mode is requested without a valid password."""
 
@@ -164,7 +171,7 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
                 "ANTHROPIC_API_KEY is not set. Set it, or use Demo mode which "
                 "needs no keys."
             )
-        if not (_real(settings.spyfu_api_id) and _real(settings.spyfu_secret_key)):
+        if not _provider_ready(settings):
             raise RuntimeError(
                 "Data-provider credentials are not set. Use Mock mode to test the "
                 "pipeline with sample data, or Demo mode which needs no keys."
@@ -203,7 +210,11 @@ def ping_provider() -> dict:
     settings = Settings.load()
     aid = settings.spyfu_api_id or ""
     sec = settings.spyfu_secret_key or ""
+    basic = settings.spyfu_basic_auth or ""
     info = {
+        "auth_mode": "base64" if _real(basic) else "id+secret",
+        "basic_auth_present": _real(basic),
+        "basic_auth_len": len(basic),
         "api_id_present": _real(aid),
         "secret_present": _real(sec),
         "api_id_len": len(aid),
@@ -212,7 +223,7 @@ def ping_provider() -> dict:
         "api_id_has_whitespace": aid != aid.strip(),
         "secret_has_whitespace": sec != sec.strip(),
     }
-    if not (_real(aid) and _real(sec)):
+    if not _provider_ready(settings):
         info["ok"] = False
         info["result"] = "Credentials are not set (empty or still the placeholder)."
         return info
@@ -232,7 +243,7 @@ def status() -> dict:
     settings = Settings.load()
     return {
         "has_anthropic": _real(settings.anthropic_api_key),
-        "has_provider": _real(settings.spyfu_api_id) and _real(settings.spyfu_secret_key),
+        "has_provider": _provider_ready(settings),
         "auth_required": bool(_access_password()),
         "model": settings.model,
         "default_country": settings.default_country,
