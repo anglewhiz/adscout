@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/ask.py": {
+      "maxDuration": 60,
+      "includeFiles": "adscout/**"
+    },
+    "api/status.py": {
+      "maxDuration": 10,
+      "includeFiles": "adscout/**"
+    }
+  }
+}

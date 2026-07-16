@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AdScout — Competitive Marketing Intelligence</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #171e2e;
+    --panel-2: #1e2739;
+    --border: #2a3450;
+    --text: #e8ecf4;
+    --muted: #97a3bd;
+    --accent: #4f8cff;
+    --accent-2: #ff8a3d;
+    --good: #37c98a;
+    --bad: #ff6b6b;
+    --warn: #f5c451;
+    --radius: 12px;
+    --shadow: 0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(1200px 600px at 70% -10%, #1a2540 0, transparent 60%), var(--bg);
+    color: var(--text);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .logo {
+    width: 40px; height: 40px; border-radius: 10px; flex: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 17px;
+    box-shadow: var(--shadow); letter-spacing: -.5px;
+  }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -.2px; }
+  .sub { color: var(--muted); font-size: 13.5px; margin: 2px 0 22px; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow);
+  }
+
+  label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .6px;
+          color: var(--muted); margin: 0 0 6px; }
+  textarea, select, input {
+    width: 100%; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+    font: inherit; outline: none; transition: border-color .15s, box-shadow .15s;
+  }
+  textarea { resize: vertical; min-height: 82px; }
+  textarea:focus, select:focus, input:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,140,255,.18);
+  }
+  select:disabled, option:disabled { color: var(--muted); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+  .chip {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 999px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;
+    transition: all .15s;
+  }
+  .chip:hover { color: var(--text); border-color: var(--accent); }
+
+  .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 16px; }
+  @media (max-width: 620px) { .controls { grid-template-columns: 1fr; } }
+  .hint { font-size: 11.5px; color: var(--muted); margin-top: 6px; min-height: 14px; }
+
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; }
+  button.go {
+    background: linear-gradient(135deg, var(--accent), #3f78e6); color: #fff; border: 0;
+    border-radius: 10px; padding: 12px 22px; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: transform .05s, filter .15s; box-shadow: var(--shadow);
+  }
+  button.go:hover { filter: brightness(1.08); }
+  button.go:active { transform: translateY(1px); }
+  button.go:disabled { opacity: .55; cursor: not-allowed; filter: none; }
+
+  .statusline { font-size: 12.5px; color: var(--muted); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+  .dot.ok { background: var(--good); } .dot.no { background: var(--bad); }
+
+  #out { margin-top: 22px; }
+  .answer { white-space: pre-wrap; word-wrap: break-word; }
+  .answer .verdict {
+    display: inline-block; margin: 4px 0; padding: 4px 12px; border-radius: 8px;
+    font-weight: 700; letter-spacing: .3px;
+  }
+  .verdict.supported { background: rgba(55,201,138,.15); color: var(--good); border: 1px solid rgba(55,201,138,.4); }
+  .verdict.refuted { background: rgba(255,107,107,.15); color: var(--bad); border: 1px solid rgba(255,107,107,.4); }
+  .verdict.mixed, .verdict.inconclusive { background: rgba(245,196,81,.15); color: var(--warn); border: 1px solid rgba(245,196,81,.4); }
+
+  .trace-h { margin: 24px 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+  .step {
+    display: flex; gap: 12px; padding: 12px 14px; border: 1px solid var(--border);
+    border-radius: 10px; background: var(--panel-2); margin-bottom: 8px;
+  }
+  .step .n {
+    flex: none; width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center;
+    background: rgba(79,140,255,.16); color: var(--accent); font-size: 12.5px; font-weight: 700;
+  }
+  .step .body { min-width: 0; }
+  .step .name { font-weight: 600; }
+  .step .args { color: var(--muted); font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                word-break: break-word; margin-top: 2px; }
+  .step .res { color: var(--good); font-size: 12.5px; margin-top: 3px; }
+
+  .banner { padding: 12px 14px; border-radius: 10px; margin-bottom: 16px; font-size: 13.5px; }
+  .banner.err { background: rgba(255,107,107,.12); border: 1px solid rgba(255,107,107,.4); color: #ffd0d0; }
+  .banner.info { background: rgba(245,196,81,.1); border: 1px solid rgba(245,196,81,.35); color: #f6e2ac; }
+
+  .spinner {
+    width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.25);
+    border-top-color: #fff; border-radius: 50%; display: inline-block; vertical-align: middle;
+    animation: spin .7s linear infinite; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 40px; }
+  code { background: var(--panel-2); padding: 1px 6px; border-radius: 5px; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">AS</div>
+    <div>
+      <h1>AdScout</h1>
+    </div>
+  </header>
+  <p class="sub">Ask a marketing question in plain English — get an answer proven or disproven with competitive-intelligence data.</p>
+
+  <div class="card">
+    <label for="q">Your question</label>
+    <textarea id="q" placeholder="e.g. How are people running ads in the dog food niche?"></textarea>
+
+    <div class="chips" id="chips"></div>
+
+    <div class="controls">
+      <div>
+        <label for="mode">Mode</label>
+        <select id="mode">
+          <option value="demo">Demo — no API keys (offline)</option>
+          <option value="mock">Mock — real Claude, sample data</option>
+          <option value="live">Live — real data + Claude</option>
+        </select>
+        <div class="hint" id="modeHint"></div>
+      </div>
+      <div>
+        <label for="country">Market</label>
+        <select id="country"></select>
+      </div>
+      <div>
+        <label for="steps">Max steps</label>
+        <input id="steps" type="number" min="1" max="12" value="8" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="statusline" id="status">Checking configuration…</div>
+      <button class="go" id="go">Analyze</button>
+    </div>
+  </div>
+
+  <div id="out"></div>
+
+  <footer>AdScout runs a Claude tool-use engine over competitive-intelligence data. Metrics are provider estimates and default to the US market.</footer>
+</div>
+
+<script>
+const EXAMPLES = [
+  "How are people running ads in the dog food niche?",
+  "Who advertises on grain free dog food and what offers do they use?",
+  "Is anyone spending big on 'meal kit' ads?",
+  "Map chewy.com's paid competitors",
+];
+
+const $ = (id) => document.getElementById(id);
+let CONFIG = { has_anthropic: false, has_provider: false };
+
+function renderChips() {
+  const box = $("chips");
+  EXAMPLES.forEach(ex => {
+    const c = document.createElement("span");
+    c.className = "chip";
+    c.textContent = ex;
+    c.onclick = () => { $("q").value = ex; $("q").focus(); };
+    box.appendChild(c);
+  });
+}
+
+async function loadStatus() {
+  try {
+    const r = await fetch("/api/status");
+    CONFIG = await r.json();
+    const sel = $("country");
+    (CONFIG.countries || ["US"]).forEach(cc => {
+      const o = document.createElement("option");
+      o.value = cc; o.textContent = cc;
+      if (cc === CONFIG.default_country) o.selected = true;
+      sel.appendChild(o);
+    });
+    applyAvailability();
+    updateStatusLine();
+  } catch (e) {
+    $("status").textContent = "Could not reach the server.";
+  }
+}
+
+function applyAvailability() {
+  const modeSel = $("mode");
+  const opts = { mock: modeSel.querySelector('option[value="mock"]'),
+                 live: modeSel.querySelector('option[value="live"]') };
+  // Mock needs an Anthropic key; Live needs Anthropic + provider creds.
+  if (!CONFIG.has_anthropic) {
+    opts.mock.disabled = true; opts.mock.textContent += " — needs API key";
+    opts.live.disabled = true; opts.live.textContent += " — needs API key";
+  } else if (!CONFIG.has_provider) {
+    opts.live.disabled = true; opts.live.textContent += " — needs provider creds";
+  }
+  // Default to the best available mode.
+  modeSel.value = CONFIG.has_anthropic ? (CONFIG.has_provider ? "live" : "mock") : "demo";
+  updateModeHint();
+}
+
+function updateModeHint() {
+  const m = $("mode").value;
+  const hints = {
+    demo: "Scripted, fully offline — no keys, no cost.",
+    mock: "Real Claude reasoning over sample data.",
+    live: "Real Claude + live competitive-intelligence data.",
+  };
+  $("modeHint").textContent = hints[m] || "";
+}
+
+function updateStatusLine() {
+  const a = CONFIG.has_anthropic, s = CONFIG.has_provider;
+  $("status").innerHTML =
+    `<span class="dot ${a ? "ok" : "no"}"></span>Anthropic key ` +
+    `&nbsp;&nbsp;<span class="dot ${s ? "ok" : "no"}"></span>Data provider` +
+    `&nbsp;&nbsp;·&nbsp; model <code>${CONFIG.model || "?"}</code>`;
+}
+
+function verdictClass(line) {
+  const l = line.toLowerCase();
+  if (l.includes("supported")) return "supported";
+  if (l.includes("refuted")) return "refuted";
+  if (l.includes("mixed")) return "mixed";
+  if (l.includes("inconclusive")) return "inconclusive";
+  return "";
+}
+
+function renderAnswer(text) {
+  const div = document.createElement("div");
+  div.className = "answer";
+  const lines = text.split("\n");
+  lines.forEach((line, i) => {
+    if (/^\s*VERDICT\s*:/i.test(line)) {
+      const span = document.createElement("span");
+      span.className = "verdict " + verdictClass(line);
+      span.textContent = line.trim();
+      div.appendChild(span);
+    } else {
+      div.appendChild(document.createTextNode(line));
+    }
+    if (i < lines.length - 1) div.appendChild(document.createTextNode("\n"));
+  });
+  return div;
+}
+
+function renderResult(data) {
+  const out = $("out");
+  out.innerHTML = "";
+  const card = document.createElement("div");
+  card.className = "card";
+
+  if (data.mode === "demo") {
+    const b = document.createElement("div");
+    b.className = "banner info";
+    b.textContent = "Demo mode — numbers come from offline sample data, not a live API.";
+    card.appendChild(b);
+  }
+
+  card.appendChild(renderAnswer(data.answer || "(no answer)"));
+
+  if (data.trace && data.trace.length) {
+    const h = document.createElement("div");
+    h.className = "trace-h";
+    h.textContent = `Evidence trace · ${data.trace.length} tool call${data.trace.length > 1 ? "s" : ""}`;
+    card.appendChild(h);
+
+    data.trace.forEach((t, i) => {
+      const step = document.createElement("div");
+      step.className = "step";
+      const n = document.createElement("div");
+      n.className = "n"; n.textContent = i + 1;
+      const body = document.createElement("div");
+      body.className = "body";
+      const name = document.createElement("div");
+      name.className = "name"; name.textContent = t.name;
+      const args = document.createElement("div");
+      args.className = "args"; args.textContent = JSON.stringify(t.input);
+      const res = document.createElement("div");
+      res.className = "res"; res.textContent = "→ " + t.result_summary;
+      body.append(name, args, res);
+      step.append(n, body);
+      card.appendChild(step);
+    });
+  }
+
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.textContent = `${data.steps} model step${data.steps === 1 ? "" : "s"} · mode: ${data.mode}`;
+  card.appendChild(meta);
+  out.appendChild(card);
+}
+
+function renderError(msg) {
+  const out = $("out");
+  out.innerHTML = "";
+  const card = document.createElement("div");
+  card.className = "card";
+  const b = document.createElement("div");
+  b.className = "banner err";
+  b.textContent = msg;
+  card.appendChild(b);
+  out.appendChild(card);
+}
+
+async function analyze() {
+  const question = $("q").value.trim();
+  if (!question) { $("q").focus(); return; }
+
+  const mode = $("mode").value;
+  const btn = $("go");
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.innerHTML = '<span class="spinner"></span>' +
+    (mode === "demo" ? "Running demo…" : "Asking Claude…");
+
+  $("out").innerHTML =
+    '<div class="card"><div class="meta"><span class="spinner"></span>' +
+    (mode === "demo"
+      ? "Running the scripted analysis…"
+      : "Claude is choosing tools and analyzing — this can take 10-30s…") +
+    '</div></div>';
+
+  try {
+    const r = await fetch("/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question,
+        mode,
+        country: $("country").value,
+        max_steps: parseInt($("steps").value, 10) || 8,
+      }),
+    });
+    const data = await r.json();
+    if (!r.ok || data.error) renderError(data.error || `Request failed (${r.status}).`);
+    else renderResult(data);
+  } catch (e) {
+    renderError("Network error: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+$("go").onclick = analyze;
+$("mode").addEventListener("change", updateModeHint);
+$("q").addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") analyze();
+});
+renderChips();
+loadStatus();
+</script>
+</body>
+</html>
