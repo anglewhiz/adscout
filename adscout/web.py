@@ -65,6 +65,26 @@ def _check_access(mode: str, password: str) -> None:
             "Mock or Live analyses. (Demo mode is always open.)"
         )
 
+
+def check_diagnostic_access(password: str) -> None:
+    """Gate the provider diagnostic behind ACCESS_PASSWORD.
+
+    When a password is configured it is required (it makes a real, billable
+    provider call). When no password is set, the diagnostic is disabled so it
+    can never be an anonymous, credit-spending endpoint.
+    """
+    expected = _access_password()
+    if not expected:
+        raise AuthError(
+            "The provider diagnostic is disabled. Set ACCESS_PASSWORD in the "
+            "environment to enable it, then call it with ?password=YOUR_PASSWORD."
+        )
+    if not hmac.compare_digest((password or "").strip(), expected):
+        raise AuthError(
+            "The provider diagnostic is password-protected. "
+            "Append ?password=YOUR_PASSWORD to the URL."
+        )
+
 # --------------------------------------------------------------------------
 # Demo mode: a scripted "Claude" that needs no API key.
 # --------------------------------------------------------------------------

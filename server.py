@@ -16,9 +16,10 @@ import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
-from adscout.web import (AuthError, parse_ask_payload, ping_provider,
-                         run_analysis, status)
+from adscout.web import (AuthError, check_diagnostic_access, parse_ask_payload,
+                         ping_provider, run_analysis, status)
 
 HERE = Path(__file__).resolve().parent
 INDEX_HTML = HERE / "public" / "index.html"
@@ -43,13 +44,15 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(html)
 
     def do_GET(self) -> None:
-        if self.path in ("/", "/index.html"):
+        parsed = urlparse(self.path)
+        path = parsed.path
+        if path in ("/", "/index.html"):
             # Local dev: serve the file directly. On Vercel the static file is
             # NOT on the function's disk (public/ is served by the static CDN),
             # so bounce "/" to the statically-served /index.html.
             if INDEX_HTML.exists():
                 self._send_html(INDEX_HTML.read_bytes())
-            elif self.path == "/":
+            elif path == "/":
                 self.send_response(308)
                 self.send_header("Location", "/index.html")
                 self.send_header("Content-Length", "0")
@@ -57,10 +60,16 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._send_json({"error": "UI not found"}, 404)
             return
-        if self.path == "/api/status":
+        if path == "/api/status":
             self._send_json(status())
             return
-        if self.path == "/api/ping-provider":
+        if path == "/api/ping-provider":
+            pw = (parse_qs(parsed.query).get("password") or [""])[0]
+            try:
+                check_diagnostic_access(pw)
+            except AuthError as exc:
+                self._send_json({"error": str(exc), "auth_required": True}, 401)
+                return
             self._send_json(ping_provider())
             return
         self._send_json({"error": "not found"}, 404)
