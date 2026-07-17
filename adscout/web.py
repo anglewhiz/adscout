@@ -1,4 +1,4 @@
-"""Shared web logic for AdScout's browser frontend.
+"""Shared web logic for AdSherlock's browser frontend.
 
 This module is transport-agnostic: it exposes ``run_analysis`` and ``status``
 plus a keyless "demo" reasoner. It is imported by both the local dev server

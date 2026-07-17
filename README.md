@@ -1,10 +1,10 @@
-# AdScout
+# AdSherlock
 
 Ask marketing questions in plain English; get answers **proven or disproven with
 real competitive-intelligence data**.
 
 ```
-$ adscout ask "How are people running ads in the dog food niche?" --trace
+$ adsherlock ask "How are people running ads in the dog food niche?" --trace
 
 The dog-food PPC space is dominated by a few well-funded advertisers...
 chewy.com runs the widest coverage (est. $812K/mo ad budget, 5,871 paid keywords),
@@ -22,7 +22,7 @@ Key numbers: 18 distinct advertisers on "best dog food"; top CPC ~$3.10 on
 3. get_domain_stats({'domain': 'chewy.com'}) -> 1 rows
 ```
 
-> **Not affiliated with, endorsed by, or sponsored by SpyFu.** AdScout is an
+> **Not affiliated with, endorsed by, or sponsored by SpyFu.** AdSherlock is an
 > independent tool that can query the SpyFu API as one competitive-intelligence
 > data provider. "SpyFu" is a trademark of its respective owner and is used here
 > only to describe that integration.
@@ -103,7 +103,7 @@ cp .env.example .env                    # then fill in your keys
 
 Credentials:
 
-- **Anthropic** — `ANTHROPIC_API_KEY`, for AdScout's reasoning loop (Mock + Live).
+- **Anthropic** — `ANTHROPIC_API_KEY`, for AdSherlock's reasoning loop (Mock + Live).
 - **Data provider (SpyFu)** — `SPYFU_API_ID` + `SPYFU_SECRET_KEY`, found under
   *Account Settings → API Usage* on spyfu.com. API access requires a Pro + AI or
   Team/Agency plan. (Live mode only.)
@@ -111,9 +111,9 @@ Credentials:
 ## Usage (CLI)
 
 ```bash
-adscout ask "who advertises on grain free dog food and what offers do they use?"
-adscout ask "is anyone spending big on 'meal kit' ads?" --country US --trace
-adscout ask "map chewy.com's paid competitors" --max-steps 4
+adsherlock ask "who advertises on grain free dog food and what offers do they use?"
+adsherlock ask "is anyone spending big on 'meal kit' ads?" --country US --trace
+adsherlock ask "map chewy.com's paid competitors" --max-steps 4
 ```
 
 Or from Python:

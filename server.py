@@ -1,4 +1,4 @@
-"""Local dev server for the AdScout web UI.
+"""Local dev server for the AdSherlock web UI.
 
 Serves the static frontend and a small JSON API so you can ask marketing
 questions from the browser. It mirrors the Vercel serverless functions in
@@ -109,7 +109,7 @@ def main() -> None:
     host = os.getenv("HOST", "127.0.0.1")
     server = ThreadingHTTPServer((host, port), Handler)
     st = status()
-    print("AdScout — web UI")
+    print("AdSherlock — web UI")
     print(f"  serving on http://{host}:{port}")
     print(f"  ANTHROPIC_API_KEY: {'set' if st['has_anthropic'] else 'MISSING'}   "
           f"provider creds: {'set' if st['has_provider'] else 'MISSING'}")

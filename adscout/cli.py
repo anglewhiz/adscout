@@ -1,4 +1,4 @@
-"""Command-line interface: `adscout ask "<question>"`."""
+"""Command-line interface: `adsherlock ask "<question>"`."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ def _cmd_ask(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="adscout",
+        prog="adsherlock",
         description="Ask marketing questions; get answers proven with competitive-intelligence data.",
     )
     sub = parser.add_subparsers(dest="command", required=True)

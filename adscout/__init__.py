@@ -1,4 +1,4 @@
-"""AdScout — ask marketing questions, get answers proven with competitive-intelligence data."""
+"""AdSherlock — ask marketing questions, get answers proven with competitive-intelligence data."""
 from .analyst import Analyst, AnalystResult
 from .client import SpyFuClient, SpyFuError
 from .config import Settings

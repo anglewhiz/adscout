@@ -1,12 +1,14 @@
+# Product: AdSherlock. Internal Python package stays "adscout" to keep the
+# working Vercel build wiring untouched (the folder name is not user-visible).
 [project]
-name = "adscout"
+name = "adsherlock"
 version = "0.1.0"
 description = "Ask marketing questions; get answers proven with competitive-intelligence data."
 requires-python = ">=3.10"
 dependencies = ["anthropic>=0.40", "httpx>=0.27"]
 
 [project.scripts]
-adscout = "adscout.cli:main"
+adsherlock = "adscout.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]
