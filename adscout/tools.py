@@ -137,13 +137,73 @@ TOOLS: list[dict] = [
             "required": ["domain"],
         },
     },
+    {
+        "name": "search_facebook_ads",
+        "description": (
+            "Find who is advertising a topic/niche on FACEBOOK & INSTAGRAM (Meta), "
+            "and see their live ad creatives. SpyFu only covers GOOGLE SEARCH ads, so "
+            "use this whenever Google shows little/no paid activity but the offer likely "
+            "runs on Meta — typical for $1-trial or continuity funnels, info-products, "
+            "coaching, and DTC brands. Returns advertisers, ad copy, CTAs, destination "
+            "links, and how long each ad has been running."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "topic": {"type": "string", "description": "Topic, niche, offer, or brand name, e.g. 'metal mixing course'."},
+                "active": {"type": "boolean", "description": "Only currently-running ads (default true). Set false to include past ads."},
+                "country": _COUNTRY,
+                "limit": _LIMIT,
+            },
+            "required": ["topic"],
+        },
+    },
+    {
+        "name": "get_advertiser_facebook_ads",
+        "description": (
+            "List the Facebook/Instagram (Meta) ads a SPECIFIC advertiser is running, "
+            "by their Facebook Page URL or brand/page name. Use to inspect one brand's "
+            "Meta ad strategy and creatives (headlines, body copy, offers, CTAs)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "advertiser": {"type": "string", "description": "Facebook Page URL (e.g. https://www.facebook.com/nailthemix) or the brand/page name."},
+                "active": {"type": "boolean", "description": "Only currently-running ads (default true)."},
+                "country": _COUNTRY,
+                "limit": _LIMIT,
+            },
+            "required": ["advertiser"],
+        },
+    },
 ]
 
 
-def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *, default_country: str = "US") -> dict:
-    """Execute a tool call against SpyFu and return the raw JSON result."""
+def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *,
+             default_country: str = "US", meta=None) -> dict:
+    """Execute a tool call and return the raw JSON result.
+
+    SpyFu (Google Search) tools use ``client``; Meta (Facebook/Instagram) tools
+    use ``meta`` (a MetaAdLibraryClient), which may be None when unavailable.
+    """
     country = tool_input.get("country", default_country)
     limit = tool_input.get("limit", 20)
+
+    # -- Meta (Facebook/Instagram) Ad Library -----------------------------
+    if tool_name in ("search_facebook_ads", "get_advertiser_facebook_ads"):
+        if meta is None:
+            return {"error": "Facebook/Meta ad lookups are not available in this run "
+                             "(set APIFY_TOKEN to enable them)."}
+        active = tool_input.get("active", True)
+        if tool_name == "search_facebook_ads":
+            return meta.search(query=tool_input["topic"], country=country,
+                               active=active, limit=limit)
+        advertiser = tool_input["advertiser"].strip()
+        if advertiser.startswith("http://") or advertiser.startswith("https://"):
+            return meta.search(page_url=advertiser, country=country,
+                               active=active, limit=limit)
+        return meta.search(query=advertiser, country=country,
+                           active=active, limit=limit)
 
     if tool_name == "find_advertisers_for_topic":
         return client.call(

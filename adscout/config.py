@@ -57,6 +57,8 @@ class Settings:
     default_country: str
     # Optional pre-generated Base64 of "id:secret" (SpyFu API Usage page).
     spyfu_basic_auth: str | None = None
+    # Apify token for the Meta (Facebook/Instagram) Ad Library scraper.
+    apify_token: str | None = None
 
     @classmethod
     def load(cls) -> "Settings":
@@ -73,6 +75,7 @@ class Settings:
             # Any current Claude model works; override with ANALYST_MODEL.
             model=os.getenv("ANALYST_MODEL", "claude-sonnet-5"),
             default_country=os.getenv("SPYFU_COUNTRY", "US"),
+            apify_token=os.getenv("APIFY_TOKEN"),
         )
 
     def has_provider_auth(self) -> bool:

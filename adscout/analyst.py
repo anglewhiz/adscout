@@ -15,21 +15,30 @@ from .client import SpyFuClient
 from .tools import TOOLS, dispatch
 
 SYSTEM_PROMPT = """You are a paid-search and SEO marketing analyst. You answer \
-marketing questions using SpyFu competitive-intelligence data, and your job is to \
-PROVE or DISPROVE the user's idea with evidence — never to guess.
+marketing questions using competitive-intelligence data across two channels, and \
+your job is to PROVE or DISPROVE the user's idea with evidence — never to guess.
+
+You have TWO data channels — use BOTH before concluding:
+- GOOGLE SEARCH ads & SEO (SpyFu): find_advertisers_for_topic, research_keywords, \
+get_keyword_ad_history, get_domain_ads, get_top_ppc_competitors, get_domain_stats.
+- FACEBOOK/INSTAGRAM ads (Meta Ad Library): search_facebook_ads, \
+get_advertiser_facebook_ads — live ad creatives, offers, and CTAs.
 
 Rules:
 - Ground every substantive claim in data you retrieved via the tools. If you did \
 not pull a number, do not assert it.
-- Plan briefly, then call tools. Typical flow for a niche question: find who \
-advertises (find_advertisers_for_topic), inspect real ad copy for the top \
-keywords (get_keyword_ad_history), then optionally size up individual advertisers \
-(get_domain_stats) or map competitors (get_top_ppc_competitors).
-- Call multiple tools when needed; don't stop after one if the question isn't \
-fully answered.
-- Note data limitations honestly (estimates, sample sizes, single-country scope).
+- Plan briefly, then call tools. Typical niche flow: find who advertises on Google \
+(find_advertisers_for_topic), inspect ad copy (get_keyword_ad_history), size up \
+advertisers (get_domain_stats).
+- IMPORTANT: if Google Search shows little or NO paid activity, that does NOT mean \
+the offer isn't advertised — many offers (especially $1-trial/continuity funnels, \
+info-products, coaching, DTC) run mainly on Meta. In that case ALWAYS check \
+search_facebook_ads (by topic) and get_advertiser_facebook_ads (by the brand/Page) \
+before concluding. Only call a niche 'not advertised' if BOTH channels are empty.
+- Note data limitations honestly (estimates, sample sizes, single-country scope, \
+and which channel a finding came from).
 - End with a short, clearly labeled verdict: SUPPORTED / REFUTED / MIXED / \
-INCONCLUSIVE, followed by the 3-6 numbers that drove it.
+INCONCLUSIVE, followed by the 3-6 facts (with channel) that drove it.
 Keep the final answer tight and skimmable."""
 
 
@@ -53,12 +62,14 @@ class Analyst:
         spyfu: SpyFuClient,
         *,
         anthropic_client=None,
+        meta=None,
         model: str = "claude-sonnet-5",
         default_country: str = "US",
         max_steps: int = 8,
         max_tokens: int = 2048,
     ) -> None:
         self.spyfu = spyfu
+        self.meta = meta
         self.model = model
         self.default_country = default_country
         self.max_steps = max_steps
@@ -98,7 +109,7 @@ class Analyst:
                 try:
                     data = dispatch(
                         self.spyfu, block.name, dict(block.input),
-                        default_country=self.default_country,
+                        default_country=self.default_country, meta=self.meta,
                     )
                     payload = json.dumps(data)[:6000]  # bound token growth
                     trace.append(ToolCall(block.name, dict(block.input),
