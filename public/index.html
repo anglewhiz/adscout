@@ -6,179 +6,243 @@
 <title>AdSherlock — Competitive Marketing Intelligence</title>
 <style>
   :root {
-    --bg: #0f1420;
-    --panel: #171e2e;
-    --panel-2: #1e2739;
-    --border: #2a3450;
-    --text: #e8ecf4;
-    --muted: #97a3bd;
-    --accent: #4f8cff;
-    --accent-2: #ff8a3d;
-    --good: #37c98a;
-    --bad: #ff6b6b;
-    --warn: #f5c451;
-    --radius: 12px;
-    --shadow: 0 8px 30px rgba(0,0,0,.35);
+    /* canvas + layered surfaces */
+    --canvas: #010102;
+    --surface-1: #0f1011;
+    --surface-2: #141516;
+    --surface-3: #18191a;
+    --hairline: #23252a;
+    --hairline-strong: #34343a;
+
+    /* ink hierarchy */
+    --ink: #f7f8f8;
+    --ink-muted: #d0d6e0;
+    --ink-subtle: #8a8f98;
+    --ink-faint: #62666d;
+
+    /* brand + semantics */
+    --primary: #5e6ad2;
+    --primary-hover: #828fff;
+    --success: #27a644;
+    --danger: #e5484d;
+    --warning: #e0a01e;
+
+    /* per-channel accents (scannability in dense output) */
+    --ch-google: #6ea8fe;
+    --ch-meta: #a78bfa;
+    --ch-moz: #2dd4a7;
+
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
   }
+
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    background: radial-gradient(1200px 600px at 70% -10%, #1a2540 0, transparent 60%), var(--bg);
-    color: var(--text);
-    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--canvas);
+    color: var(--ink);
+    font: 400 15px/1.6 "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
     min-height: 100vh;
   }
-  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 20px 80px; }
+  body::before {
+    content: ""; position: fixed; inset: 0 0 auto 0; height: 420px; pointer-events: none;
+    background: radial-gradient(900px 380px at 50% -140px, rgba(94,106,210,.22), transparent 70%);
+  }
+  .wrap { position: relative; max-width: 860px; margin: 0 auto; padding: 40px 22px 90px; }
 
-  header { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  /* ---------- header ---------- */
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
   .logo {
-    width: 40px; height: 40px; border-radius: 10px; flex: none;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 17px;
-    box-shadow: var(--shadow); letter-spacing: -.5px;
+    width: 34px; height: 34px; border-radius: 9px; flex: none; display: grid; place-items: center;
+    background: linear-gradient(150deg, var(--primary), #7c5cd6);
+    box-shadow: 0 4px 14px rgba(94,106,210,.35);
+    font-size: 17px;
   }
-  h1 { font-size: 22px; margin: 0; letter-spacing: -.2px; }
-  .sub { color: var(--muted); font-size: 13.5px; margin: 2px 0 22px; }
+  h1 { font-size: 19px; font-weight: 600; letter-spacing: -.4px; margin: 0; }
+  .tagline { color: var(--ink-subtle); font-size: 13.5px; margin: 0 0 26px 46px; letter-spacing: -.1px; }
+  @media (max-width: 560px) { .tagline { margin-left: 0; } }
 
+  /* ---------- cards ---------- */
   .card {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow);
+    background: var(--surface-1); border: 1px solid var(--hairline);
+    border-radius: var(--r-lg); padding: 20px;
   }
 
-  label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .6px;
-          color: var(--muted); margin: 0 0 6px; }
+  label {
+    display: block; font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: .7px; color: var(--ink-faint); margin: 0 0 7px;
+  }
   textarea, select, input {
-    width: 100%; background: var(--panel-2); color: var(--text);
-    border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
-    font: inherit; outline: none; transition: border-color .15s, box-shadow .15s;
+    width: 100%; background: var(--surface-2); color: var(--ink);
+    border: 1px solid var(--hairline); border-radius: var(--r-md);
+    padding: 11px 13px; font: inherit; font-size: 14.5px; outline: none;
+    transition: border-color .15s, box-shadow .15s;
   }
-  textarea { resize: vertical; min-height: 82px; }
+  textarea { resize: vertical; min-height: 78px; line-height: 1.55; }
+  textarea::placeholder { color: var(--ink-faint); }
   textarea:focus, select:focus, input:focus {
-    border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,140,255,.18);
+    border-color: var(--primary); box-shadow: 0 0 0 3px rgba(94,106,210,.22);
   }
-  select:disabled, option:disabled { color: var(--muted); }
+  select { appearance: none; cursor: pointer;
+           background-image: linear-gradient(45deg, transparent 50%, var(--ink-subtle) 50%),
+                             linear-gradient(135deg, var(--ink-subtle) 50%, transparent 50%);
+           background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+           background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
+  option:disabled { color: var(--ink-faint); }
 
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+  /* ---------- example chips ---------- */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 11px 0 2px; }
   .chip {
-    background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
-    border-radius: 999px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;
-    transition: all .15s;
+    background: var(--surface-2); border: 1px solid var(--hairline); color: var(--ink-subtle);
+    border-radius: 999px; padding: 5px 11px; font-size: 12.5px; cursor: pointer;
+    transition: color .15s, border-color .15s;
   }
-  .chip:hover { color: var(--text); border-color: var(--accent); }
+  .chip:hover { color: var(--ink); border-color: var(--hairline-strong); }
 
-  .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .controls { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 12px; margin-top: 18px; }
   @media (max-width: 620px) { .controls { grid-template-columns: 1fr; } }
-  .hint { font-size: 11.5px; color: var(--muted); margin-top: 6px; min-height: 14px; }
+  .hint { font-size: 11.5px; color: var(--ink-faint); margin-top: 6px; min-height: 14px; }
   .pw-wrap { margin-top: 16px; }
-  .pw-note { text-transform: none; letter-spacing: 0; }
+  .pw-note { text-transform: none; letter-spacing: 0; color: var(--ink-faint); }
   .hidden { display: none !important; }
 
-  .row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; }
-  button.go {
-    background: linear-gradient(135deg, var(--accent), #3f78e6); color: #fff; border: 0;
-    border-radius: 10px; padding: 12px 22px; font-size: 15px; font-weight: 600;
-    cursor: pointer; transition: transform .05s, filter .15s; box-shadow: var(--shadow);
+  /* ---------- composer footer ---------- */
+  .composer-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    margin-top: 20px; padding-top: 17px; border-top: 1px solid var(--hairline);
+    flex-wrap: wrap;
   }
-  button.go:hover { filter: brightness(1.08); }
+  .channels { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px;
+    padding: 4px 9px; border-radius: 999px; border: 1px solid var(--hairline);
+    background: var(--surface-2); color: var(--ink-faint); letter-spacing: .2px;
+  }
+  .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint); }
+  .pill.on { color: var(--ink-muted); border-color: var(--hairline-strong); }
+  .pill.on .dot { background: var(--success); box-shadow: 0 0 7px rgba(39,166,68,.7); }
+  .model-tag { font-size: 11.5px; color: var(--ink-faint); }
+
+  button.go {
+    background: var(--primary); color: #fff; border: 0; border-radius: var(--r-md);
+    padding: 10px 22px; font-size: 14.5px; font-weight: 500; cursor: pointer;
+    letter-spacing: -.1px; transition: background .15s, transform .05s;
+  }
+  button.go:hover { background: var(--primary-hover); }
   button.go:active { transform: translateY(1px); }
-  button.go:disabled { opacity: .55; cursor: not-allowed; filter: none; }
+  button.go:disabled { opacity: .5; cursor: not-allowed; background: var(--primary); }
 
-  .statusline { font-size: 12.5px; color: var(--muted); }
-  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
-  .dot.ok { background: var(--good); } .dot.no { background: var(--bad); }
-
-  #out { margin-top: 22px; }
-  .answer { word-wrap: break-word; font-size: 14.5px; line-height: 1.62; }
+  /* ---------- results ---------- */
+  #out { margin-top: 20px; }
+  .answer { font-size: 14.5px; line-height: 1.68; color: var(--ink-muted); }
   .answer > *:first-child { margin-top: 0; }
   .answer h2 {
-    font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: .2px;
-    margin: 26px 0 12px; padding-bottom: 7px; border-bottom: 1px solid var(--border);
+    font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--ink-faint); margin: 30px 0 13px; padding-bottom: 9px;
+    border-bottom: 1px solid var(--hairline);
   }
   .answer h3 {
-    font-size: 12px; font-weight: 700; color: var(--accent);
-    text-transform: uppercase; letter-spacing: .8px; margin: 18px 0 8px;
+    font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: -.1px;
+    margin: 20px 0 9px; padding-left: 11px; border-left: 2px solid var(--hairline-strong);
   }
-  .answer p { margin: 0 0 11px; color: #d6dcea; }
-  .answer ul, .answer ol { margin: 0 0 13px; padding-left: 20px; }
-  .answer li { margin-bottom: 6px; color: #d6dcea; }
-  .answer li::marker { color: var(--accent); }
-  .answer strong { color: #fff; font-weight: 650; }
-  .answer em { color: var(--muted); font-style: italic; }
-  .answer a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted; }
-  .answer a:hover { filter: brightness(1.2); }
-  .answer hr { border: 0; border-top: 1px solid var(--border); margin: 18px 0 12px; }
-  .answer table { width: 100%; border-collapse: collapse; margin: 4px 0 14px; font-size: 13px; }
-  .answer th, .answer td { padding: 7px 10px; border: 1px solid var(--border); text-align: left; }
-  .answer th { background: var(--panel-2); color: var(--muted);
-               text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+  .answer h3.ch-google { border-left-color: var(--ch-google); color: var(--ch-google); }
+  .answer h3.ch-meta   { border-left-color: var(--ch-meta);   color: var(--ch-meta); }
+  .answer h3.ch-moz    { border-left-color: var(--ch-moz);    color: var(--ch-moz); }
+  .answer p { margin: 0 0 12px; }
+  .answer ul, .answer ol { margin: 0 0 14px; padding-left: 19px; }
+  .answer li { margin-bottom: 7px; }
+  .answer li::marker { color: var(--ink-faint); }
+  .answer strong { color: var(--ink); font-weight: 600; }
+  .answer em { color: var(--ink-subtle); }
+  .answer a { color: var(--primary-hover); text-decoration: none; border-bottom: 1px solid rgba(130,143,255,.35); }
+  .answer hr { border: 0; border-top: 1px solid var(--hairline); margin: 20px 0 14px; }
+  .answer code {
+    background: var(--surface-3); border: 1px solid var(--hairline); color: var(--ink-muted);
+    padding: 1px 6px; border-radius: var(--r-sm); font-size: 12.5px;
+    font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
+  }
+  .answer img { max-width: 100%; border-radius: var(--r-md); border: 1px solid var(--hairline); }
+  .answer table { width: 100%; border-collapse: collapse; margin: 4px 0 15px; font-size: 13px; }
+  .answer th, .answer td { padding: 8px 11px; border: 1px solid var(--hairline); text-align: left; }
+  .answer th { background: var(--surface-2); color: var(--ink-faint);
+               text-transform: uppercase; font-size: 10.5px; letter-spacing: .6px; font-weight: 600; }
   .tbl-wrap { overflow-x: auto; }
-  .verdict-wrap { margin: 22px 0 12px; }
-  .answer .verdict {
-    display: inline-block; padding: 8px 16px; border-radius: 10px;
-    font-weight: 700; letter-spacing: .3px; font-size: 15px;
-  }
-  .verdict.supported { background: rgba(55,201,138,.15); color: var(--good); border: 1px solid rgba(55,201,138,.4); }
-  .verdict.refuted { background: rgba(255,107,107,.15); color: var(--bad); border: 1px solid rgba(255,107,107,.4); }
-  .verdict.mixed, .verdict.inconclusive { background: rgba(245,196,81,.15); color: var(--warn); border: 1px solid rgba(245,196,81,.4); }
 
-  .trace-h { margin: 24px 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
-
-  /* landing-page capture gallery */
-  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
-  .shot {
-    border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
-    background: var(--panel-2); display: flex; flex-direction: column;
+  /* verdict */
+  .verdict-wrap { margin: 26px 0 14px; }
+  .verdict {
+    display: inline-flex; align-items: center; gap: 9px; padding: 10px 18px;
+    border-radius: var(--r-md); font-weight: 600; font-size: 14.5px; letter-spacing: -.1px;
   }
-  .shot a.thumb { display: block; background: #0b0f18; max-height: 320px; overflow: hidden; }
+  .verdict::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .verdict.supported { background: rgba(39,166,68,.12); color: #4ade80; border: 1px solid rgba(39,166,68,.35); }
+  .verdict.refuted { background: rgba(229,72,77,.12); color: #ff7b7f; border: 1px solid rgba(229,72,77,.35); }
+  .verdict.mixed, .verdict.inconclusive {
+    background: rgba(224,160,30,.12); color: #f5c451; border: 1px solid rgba(224,160,30,.35); }
+
+  /* section heads inside results */
+  .sec-h {
+    margin: 28px 0 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--ink-faint);
+  }
+
+  /* screenshot gallery */
+  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 12px; }
+  .shot { border: 1px solid var(--hairline); border-radius: var(--r-md); overflow: hidden;
+          background: var(--surface-2); transition: border-color .15s; }
+  .shot:hover { border-color: var(--hairline-strong); }
+  .shot a.thumb { display: block; background: #08090a; max-height: 300px; overflow: hidden; }
   .shot img { width: 100%; display: block; object-fit: cover; object-position: top center; }
-  .shot .cap { padding: 9px 11px; border-top: 1px solid var(--border); }
-  .shot .cap .lbl { font-size: 12.5px; color: var(--text); font-weight: 600;
+  .shot .cap { padding: 9px 11px; border-top: 1px solid var(--hairline); }
+  .shot .cap .lbl { font-size: 12.5px; color: var(--ink); font-weight: 500;
                     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .shot .cap .dev { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
-  .shot .cap a { color: var(--accent); font-size: 11.5px; text-decoration: none; }
-  .answer img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
-  .step {
-    display: flex; gap: 12px; padding: 12px 14px; border: 1px solid var(--border);
-    border-radius: 10px; background: var(--panel-2); margin-bottom: 8px;
-  }
-  .step .n {
-    flex: none; width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center;
-    background: rgba(79,140,255,.16); color: var(--accent); font-size: 12.5px; font-weight: 700;
-  }
-  .step .body { min-width: 0; }
-  .step .name { font-weight: 600; }
-  .step .args { color: var(--muted); font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-                word-break: break-word; margin-top: 2px; }
-  .step .res { color: var(--good); font-size: 12.5px; margin-top: 3px; }
+  .shot .cap .dev { font-size: 10.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .6px; }
+  .shot .cap a { color: var(--primary-hover); font-size: 11.5px; text-decoration: none; }
 
-  .banner { padding: 12px 14px; border-radius: 10px; margin-bottom: 16px; font-size: 13.5px; }
-  .banner.err { background: rgba(255,107,107,.12); border: 1px solid rgba(255,107,107,.4); color: #ffd0d0; }
-  .banner.info { background: rgba(245,196,81,.1); border: 1px solid rgba(245,196,81,.35); color: #f6e2ac; }
+  /* evidence trace */
+  .step { display: flex; gap: 12px; padding: 11px 13px; border: 1px solid var(--hairline);
+          border-radius: var(--r-md); background: var(--surface-2); margin-bottom: 7px; }
+  .step .n { flex: none; width: 21px; height: 21px; border-radius: var(--r-sm); display: grid;
+             place-items: center; background: var(--surface-3); border: 1px solid var(--hairline);
+             color: var(--ink-subtle); font-size: 11px; font-weight: 600; }
+  .step .body { min-width: 0; flex: 1; }
+  .step .name { font-weight: 500; font-size: 13.5px; color: var(--ink); letter-spacing: -.1px; }
+  .step .args { color: var(--ink-faint); font-size: 12px; margin-top: 3px; word-break: break-word;
+                font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace; }
+  .step .res { color: var(--success); font-size: 12px; margin-top: 4px; }
 
-  .spinner {
-    width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.25);
-    border-top-color: #fff; border-radius: 50%; display: inline-block; vertical-align: middle;
-    animation: spin .7s linear infinite; margin-right: 8px;
-  }
+  /* banners / states */
+  .banner { padding: 11px 14px; border-radius: var(--r-md); margin-bottom: 16px; font-size: 13.5px; }
+  .banner.err { background: rgba(229,72,77,.1); border: 1px solid rgba(229,72,77,.32); color: #ffc9cb; }
+  .banner.info { background: rgba(224,160,30,.08); border: 1px solid rgba(224,160,30,.28); color: #f0d9a4; }
+
+  .spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.18);
+             border-top-color: var(--primary-hover); border-radius: 50%; display: inline-block;
+             vertical-align: -2px; animation: spin .7s linear infinite; margin-right: 9px; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .meta { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
-  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 40px; }
-  code { background: var(--panel-2); padding: 1px 6px; border-radius: 5px; font-size: 12.5px; }
+  .meta { color: var(--ink-faint); font-size: 12.5px; margin-top: 14px;
+          padding-top: 13px; border-top: 1px solid var(--hairline); }
+  .loading { display: flex; align-items: center; color: var(--ink-subtle); font-size: 13.5px; }
+  .elapsed { margin-left: auto; color: var(--ink-faint); font-size: 12.5px;
+             font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  footer { color: var(--ink-faint); font-size: 12px; text-align: center; margin-top: 44px; line-height: 1.7; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="logo">AS</div>
-    <div>
-      <h1>AdSherlock</h1>
-    </div>
+    <div class="logo">🕵️</div>
+    <h1>AdSherlock</h1>
   </header>
-  <p class="sub">Ask a marketing question in plain English — get an answer proven or disproven with competitive-intelligence data.</p>
+  <p class="tagline">Ask a marketing question in plain English — get an answer proven or disproven with competitive-intelligence data.</p>
 
   <div class="card">
     <label for="q">Your question</label>
-    <textarea id="q" placeholder="e.g. How are people running ads in the dog food niche?"></textarea>
+    <textarea id="q" placeholder="e.g. What landing page is Factor sending their Facebook ads to? Show me it."></textarea>
 
     <div class="chips" id="chips"></div>
 
@@ -186,7 +250,7 @@
       <div>
         <label for="mode">Mode</label>
         <select id="mode">
-          <option value="demo">Demo — no API keys (offline)</option>
+          <option value="demo">Demo — no API keys</option>
           <option value="mock">Mock — real Claude, sample data</option>
           <option value="live">Live — real data + Claude</option>
         </select>
@@ -203,31 +267,34 @@
     </div>
 
     <div id="pwWrap" class="pw-wrap hidden">
-      <label for="pw">Access password <span class="pw-note">(required for Mock/Live)</span></label>
+      <label for="pw">Access password <span class="pw-note">— required for Mock &amp; Live</span></label>
       <input id="pw" type="password" placeholder="Enter the shared access password" autocomplete="current-password" />
     </div>
 
-    <div class="row">
-      <div class="statusline" id="status">Checking configuration…</div>
-      <button class="go" id="go">Analyze</button>
+    <div class="composer-foot">
+      <div class="channels" id="status"><span class="model-tag">Checking configuration…</span></div>
+      <button class="go" id="go" type="button">Analyze</button>
     </div>
   </div>
 
   <div id="out"></div>
 
-  <footer>AdSherlock runs a Claude tool-use engine over competitive-intelligence data. Metrics are provider estimates and default to the US market.</footer>
+  <footer>
+    AdSherlock runs a Claude tool-use engine over Google Search, Meta Ad Library and Moz data.<br>
+    Metrics are provider estimates and default to the US market.
+  </footer>
 </div>
 
 <script>
 const EXAMPLES = [
   "How are people running ads in the dog food niche?",
-  "Who advertises on grain free dog food and what offers do they use?",
   "Is anyone spending big on 'meal kit' ads?",
-  "Map chewy.com's paid competitors",
+  "What landing page is Factor sending their Facebook ads to? Show me it.",
+  "Is nutriketo.com a real operator or a dead funnel?",
 ];
 
 const $ = (id) => document.getElementById(id);
-let CONFIG = { has_anthropic: false, has_provider: false };
+let CONFIG = {};
 
 function renderChips() {
   const box = $("chips");
@@ -253,53 +320,51 @@ async function loadStatus() {
     });
     applyAvailability();
     updateStatusLine();
-    // Restore a previously entered password for this tab.
     const saved = sessionStorage.getItem("adscout_pw");
     if (saved) $("pw").value = saved;
     updatePwVisibility();
   } catch (e) {
-    $("status").textContent = "Could not reach the server.";
+    $("status").innerHTML = '<span class="model-tag">Could not reach the server.</span>';
   }
-}
-
-function updatePwVisibility() {
-  const paid = $("mode").value !== "demo";
-  const show = paid && CONFIG.auth_required;
-  $("pwWrap").classList.toggle("hidden", !show);
 }
 
 function applyAvailability() {
   const modeSel = $("mode");
-  const opts = { mock: modeSel.querySelector('option[value="mock"]'),
-                 live: modeSel.querySelector('option[value="live"]') };
-  // Mock needs an Anthropic key; Live needs Anthropic + provider creds.
+  const opt = v => modeSel.querySelector(`option[value="${v}"]`);
   if (!CONFIG.has_anthropic) {
-    opts.mock.disabled = true; opts.mock.textContent += " — needs API key";
-    opts.live.disabled = true; opts.live.textContent += " — needs API key";
+    ["mock", "live"].forEach(v => { opt(v).disabled = true; opt(v).textContent += " — needs API key"; });
   } else if (!CONFIG.has_provider) {
-    opts.live.disabled = true; opts.live.textContent += " — needs provider creds";
+    opt("live").disabled = true; opt("live").textContent += " — needs provider creds";
   }
-  // Default to the best available mode.
   modeSel.value = CONFIG.has_anthropic ? (CONFIG.has_provider ? "live" : "mock") : "demo";
   updateModeHint();
 }
 
 function updateModeHint() {
-  const m = $("mode").value;
   const hints = {
-    demo: "Scripted, fully offline — no keys, no cost.",
+    demo: "Scripted and offline — no keys, no cost.",
     mock: "Real Claude reasoning over sample data.",
-    live: "Real Claude + live competitive-intelligence data.",
+    live: "Real Claude over live competitive-intelligence data.",
   };
-  $("modeHint").textContent = hints[m] || "";
+  $("modeHint").textContent = hints[$("mode").value] || "";
+}
+
+function updatePwVisibility() {
+  const show = $("mode").value !== "demo" && CONFIG.auth_required;
+  $("pwWrap").classList.toggle("hidden", !show);
 }
 
 function updateStatusLine() {
-  const a = CONFIG.has_anthropic, s = CONFIG.has_provider;
-  $("status").innerHTML =
-    `<span class="dot ${a ? "ok" : "no"}"></span>Anthropic key ` +
-    `&nbsp;&nbsp;<span class="dot ${s ? "ok" : "no"}"></span>Data provider` +
-    `&nbsp;&nbsp;·&nbsp; model <code>${CONFIG.model || "?"}</code>`;
+  const chans = [
+    ["Google", CONFIG.has_provider],
+    ["Meta", CONFIG.has_meta],
+    ["Moz", CONFIG.has_moz],
+    ["Screens", CONFIG.has_screenshots],
+    ["Claude", CONFIG.has_anthropic],
+  ];
+  $("status").innerHTML = chans.map(([name, on]) =>
+    `<span class="pill${on ? " on" : ""}"><span class="dot"></span>${name}</span>`
+  ).join("") + `<span class="model-tag">${CONFIG.model || ""}</span>`;
 }
 
 function verdictClass(line) {
@@ -311,8 +376,16 @@ function verdictClass(line) {
   return "";
 }
 
+// Colour-code channel sub-headings so dense evidence is scannable.
+function channelClass(text) {
+  const t = text.toLowerCase();
+  if (t.includes("google") || t.includes("spyfu")) return "ch-google";
+  if (t.includes("facebook") || t.includes("instagram") || t.includes("meta")) return "ch-meta";
+  if (t.includes("moz") || t.includes("seo") || t.includes("authority")) return "ch-moz";
+  return "";
+}
+
 // --- Minimal, safe Markdown renderer -------------------------------------
-// Escapes first, then applies formatting, so model output can never inject HTML.
 function escapeHtml(s) {
   return s.replace(/[&<>"']/g, c => (
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
@@ -324,14 +397,12 @@ function inlineMd(s) {
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*\w])\*([^*\n]+)\*/g, "$1<em>$2</em>")
-    // images before links — the syntaxes overlap
     .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g,
              '<img src="$2" alt="$1" loading="lazy">')
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
              '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 }
 
-// A heading/line that announces the verdict becomes a coloured badge.
 function verdictHtml(raw) {
   const t = raw.replace(/^#+\s*/, "").replace(/^\*\*|\*\*$/g, "").trim();
   if (!/^verdict\b/i.test(t)) return null;
@@ -362,7 +433,6 @@ function renderMarkdown(text) {
 
     if (/^\s*\|.*\|\s*$/.test(line)) { closeList(); table.push(line.trim()); continue; }
     flushTable();
-
     if (!line.trim()) { closeList(); continue; }
 
     const v = verdictHtml(line);
@@ -370,7 +440,10 @@ function renderMarkdown(text) {
 
     let m;
     if ((m = line.match(/^\s*#{3,}\s+(.*)$/))) {
-      closeList(); html += `<h3>${inlineMd(escapeHtml(m[1]))}</h3>`; continue;
+      closeList();
+      const cls = channelClass(m[1]);
+      html += `<h3${cls ? ` class="${cls}"` : ""}>${inlineMd(escapeHtml(m[1]))}</h3>`;
+      continue;
     }
     if ((m = line.match(/^\s*#{1,2}\s+(.*)$/))) {
       closeList(); html += `<h2>${inlineMd(escapeHtml(m[1]))}</h2>`; continue;
@@ -399,6 +472,13 @@ function renderAnswer(text) {
   return div;
 }
 
+function sectionHead(text) {
+  const h = document.createElement("div");
+  h.className = "sec-h";
+  h.textContent = text;
+  return h;
+}
+
 function renderResult(data) {
   const out = $("out");
   out.innerHTML = "";
@@ -408,46 +488,35 @@ function renderResult(data) {
   if (data.mode === "demo") {
     const b = document.createElement("div");
     b.className = "banner info";
-    b.textContent = "Demo mode — numbers come from offline sample data, not a live API.";
+    b.textContent = "Demo mode — offline sample data, not a live API.";
     card.appendChild(b);
   }
 
   card.appendChild(renderAnswer(data.answer || "(no answer)"));
 
-  // Landing-page captures, if the analyst grabbed any.
-  const shots = (data.screenshots || []).filter(s => s && s.images &&
-                                                Object.keys(s.images).length);
+  const shots = (data.screenshots || []).filter(s => s && s.images && Object.keys(s.images).length);
   if (shots.length) {
-    const h = document.createElement("div");
-    h.className = "trace-h";
     const n = shots.reduce((t, s) => t + Object.keys(s.images).length, 0);
-    h.textContent = `Landing pages captured · ${n} screenshot${n > 1 ? "s" : ""}`;
-    card.appendChild(h);
-
+    card.appendChild(sectionHead(`Landing pages captured · ${n} screenshot${n > 1 ? "s" : ""}`));
     const grid = document.createElement("div");
     grid.className = "shots";
     shots.forEach(s => {
       Object.entries(s.images).forEach(([device, url]) => {
         const cell = document.createElement("div");
         cell.className = "shot";
-
         const a = document.createElement("a");
-        a.className = "thumb";
-        a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
+        a.className = "thumb"; a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
         const img = document.createElement("img");
         img.src = url; img.loading = "lazy";
         img.alt = `${s.label || s.source || "landing page"} (${device})`;
         a.appendChild(img);
-
         const cap = document.createElement("div");
         cap.className = "cap";
         const lbl = document.createElement("div");
-        lbl.className = "lbl";
-        lbl.textContent = s.label || s.source || "Landing page";
+        lbl.className = "lbl"; lbl.textContent = s.label || s.source || "Landing page";
         lbl.title = s.source || "";
         const dev = document.createElement("div");
-        dev.className = "dev";
-        dev.textContent = device.replace(/_/g, " ");
+        dev.className = "dev"; dev.textContent = device.replace(/_/g, " ");
         cap.append(lbl, dev);
         if (s.source) {
           const link = document.createElement("a");
@@ -455,7 +524,6 @@ function renderResult(data) {
           link.textContent = "visit page ↗";
           cap.appendChild(link);
         }
-
         cell.append(a, cap);
         grid.appendChild(cell);
       });
@@ -464,11 +532,7 @@ function renderResult(data) {
   }
 
   if (data.trace && data.trace.length) {
-    const h = document.createElement("div");
-    h.className = "trace-h";
-    h.textContent = `Evidence trace · ${data.trace.length} tool call${data.trace.length > 1 ? "s" : ""}`;
-    card.appendChild(h);
-
+    card.appendChild(sectionHead(`Evidence trace · ${data.trace.length} tool call${data.trace.length > 1 ? "s" : ""}`));
     data.trace.forEach((t, i) => {
       const step = document.createElement("div");
       step.className = "step";
@@ -507,6 +571,23 @@ function renderError(msg) {
   out.appendChild(card);
 }
 
+let timer = null;
+function startLoading(mode) {
+  const label = mode === "demo"
+    ? "Running the scripted analysis…"
+    : "Claude is choosing tools and analysing — screenshots can add ~1 min…";
+  $("out").innerHTML =
+    `<div class="card"><div class="loading"><span class="spinner"></span>`
+    + `<span>${label}</span><span class="elapsed" id="elapsed">0s</span></div></div>`;
+  const t0 = Date.now();
+  clearInterval(timer);
+  timer = setInterval(() => {
+    const el = $("elapsed");
+    if (el) el.textContent = Math.round((Date.now() - t0) / 1000) + "s";
+  }, 1000);
+}
+function stopLoading() { clearInterval(timer); timer = null; }
+
 async function analyze() {
   const question = $("q").value.trim();
   if (!question) { $("q").focus(); return; }
@@ -524,39 +605,30 @@ async function analyze() {
   const btn = $("go");
   btn.disabled = true;
   const original = btn.textContent;
-  btn.innerHTML = '<span class="spinner"></span>' +
-    (mode === "demo" ? "Running demo…" : "Asking Claude…");
-
-  $("out").innerHTML =
-    '<div class="card"><div class="meta"><span class="spinner"></span>' +
-    (mode === "demo"
-      ? "Running the scripted analysis…"
-      : "Claude is choosing tools and analyzing — this can take 10-30s…") +
-    '</div></div>';
+  btn.textContent = mode === "demo" ? "Running…" : "Analysing…";
+  startLoading(mode);
 
   try {
     const r = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        question,
-        mode,
+        question, mode,
         country: $("country").value,
         max_steps: parseInt($("steps").value, 10) || 8,
         password,
       }),
     });
     const data = await r.json();
+    stopLoading();
     if (!r.ok || data.error) {
-      if (data.auth_required) {
-        $("pwWrap").classList.remove("hidden");
-        $("pw").focus();
-      }
+      if (data.auth_required) { $("pwWrap").classList.remove("hidden"); $("pw").focus(); }
       renderError(data.error || `Request failed (${r.status}).`);
     } else {
       renderResult(data);
     }
   } catch (e) {
+    stopLoading();
     renderError("Network error: " + e.message);
   } finally {
     btn.disabled = false;
