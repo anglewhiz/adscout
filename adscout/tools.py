@@ -177,6 +177,27 @@ TOOLS: list[dict] = [
         },
     },
     {
+        "name": "capture_landing_page",
+        "description": (
+            "Take a real SCREENSHOT of a landing page or funnel step so the user can "
+            "SEE it (mobile + desktop). Use for the single most important destination "
+            "page in the answer — e.g. the landing page a Meta ad points to "
+            "(the linkUrl from search_facebook_ads), a funnel/sample/order page, or a "
+            "competitor's offer page. The image is shown to the user automatically, so "
+            "just mention what the page shows; do NOT paste the image URL. "
+            "SLOW (~30-60s) and costs credits: call it at most 1-2 times per answer, "
+            "and only when seeing the page adds real value."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "Full URL of the page to capture."},
+                "label": {"type": "string", "description": "Short caption, e.g. 'Factor - 50% off landing page'."},
+            },
+            "required": ["url"],
+        },
+    },
+    {
         "name": "get_seo_authority",
         "description": (
             "Get a domain's ORGANIC SEO strength from Moz: Domain Authority (0-100), "
@@ -229,7 +250,7 @@ TOOLS: list[dict] = [
 
 
 def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *,
-             default_country: str = "US", meta=None, moz=None) -> dict:
+             default_country: str = "US", meta=None, moz=None, shots=None) -> dict:
     """Execute a tool call and return the raw JSON result.
 
     SpyFu (Google Search) tools use ``client``; Meta (Facebook/Instagram) tools
@@ -238,6 +259,20 @@ def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *,
     """
     country = tool_input.get("country", default_country)
     limit = tool_input.get("limit", 20)
+
+    # -- Landing-page screenshot ------------------------------------------
+    if tool_name == "capture_landing_page":
+        if shots is None:
+            return {"error": "Screenshots are not available in this run "
+                             "(set HEXOMATIC_API_KEY to enable them)."}
+        try:
+            data = shots.capture(tool_input["url"])
+        except Exception as exc:
+            return {"error": str(exc)}
+        data["label"] = tool_input.get("label") or tool_input["url"]
+        # Marker the analyst loop looks for when collecting images for the UI.
+        data["_captured_screenshot"] = True
+        return data
 
     # -- Moz (SEO authority / backlinks) ----------------------------------
     if tool_name in ("get_seo_authority", "get_linking_domains", "get_top_pages"):

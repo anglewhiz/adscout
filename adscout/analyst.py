@@ -27,6 +27,11 @@ get_advertiser_facebook_ads — live ad creatives, offers, and CTAs.
 - ORGANIC SEO AUTHORITY (Moz): get_seo_authority (Domain Authority, spam score, \
 linking root domains), get_linking_domains (who links to them), get_top_pages \
 (which pages earn the links).
+- VISUAL: capture_landing_page screenshots a destination page (mobile+desktop) \
+and shows it to the user. Great for the landing page behind a Meta ad (its \
+linkUrl) or a funnel/offer page. Slow and metered — at most 1-2 per answer, only \
+when seeing the page matters. The image is displayed automatically; never paste \
+the image URL into your answer.
 
 Rules:
 - Ground every substantive claim in data you retrieved via the tools. If you did \
@@ -80,6 +85,8 @@ class AnalystResult:
     answer: str
     trace: list[ToolCall] = field(default_factory=list)
     steps: int = 0
+    # Landing-page captures made during the run, rendered as a gallery.
+    screenshots: list[dict] = field(default_factory=list)
 
 
 class Analyst:
@@ -90,6 +97,7 @@ class Analyst:
         anthropic_client=None,
         meta=None,
         moz=None,
+        shots=None,
         model: str = "claude-sonnet-5",
         default_country: str = "US",
         max_steps: int = 8,
@@ -98,6 +106,7 @@ class Analyst:
         self.spyfu = spyfu
         self.meta = meta
         self.moz = moz
+        self.shots = shots
         self.model = model
         self.default_country = default_country
         self.max_steps = max_steps
@@ -110,6 +119,7 @@ class Analyst:
     def ask(self, question: str) -> AnalystResult:
         messages = [{"role": "user", "content": question}]
         trace: list[ToolCall] = []
+        screenshots: list[dict] = []
 
         for step in range(1, self.max_steps + 1):
             resp = self.ai.messages.create(
@@ -125,7 +135,8 @@ class Analyst:
                     getattr(b, "text", "") for b in resp.content
                     if getattr(b, "type", None) == "text"
                 ).strip()
-                return AnalystResult(answer=answer, trace=trace, steps=step)
+                return AnalystResult(answer=answer, trace=trace, steps=step,
+                                     screenshots=screenshots)
 
             # Record the assistant turn (with its tool_use blocks) verbatim.
             messages.append({"role": "assistant", "content": resp.content})
@@ -138,8 +149,14 @@ class Analyst:
                     data = dispatch(
                         self.spyfu, block.name, dict(block.input),
                         default_country=self.default_country, meta=self.meta,
-                        moz=self.moz,
+                        moz=self.moz, shots=self.shots,
                     )
+                    if isinstance(data, dict) and data.get("_captured_screenshot"):
+                        screenshots.append({
+                            "label": data.get("label"),
+                            "source": data.get("source"),
+                            "images": data.get("images") or {},
+                        })
                     payload = json.dumps(data)[:6000]  # bound token growth
                     trace.append(ToolCall(block.name, dict(block.input),
                                           _summarize(data)))
@@ -159,6 +176,7 @@ class Analyst:
                    "Partial evidence is in the trace above.",
             trace=trace,
             steps=self.max_steps,
+            screenshots=screenshots,
         )
 
 

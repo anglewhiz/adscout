@@ -23,6 +23,7 @@ from .config import Settings
 from .endpoints import COUNTRY_CODES
 from .meta_client import MetaAdLibraryClient
 from .moz_client import MozClient
+from .screenshot_client import ScreenshotClient
 
 # Values from .env.example that mean "not actually filled in yet".
 _PLACEHOLDERS = {"", "your_secret_key", "00000000-0000-0000-0000-000000000000"}
@@ -217,12 +218,14 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
 
     with SpyFuClient(settings, mock=data_mock) as client, \
             MetaAdLibraryClient(settings, mock=data_mock) as meta, \
-            MozClient(settings, mock=data_mock) as moz:
+            MozClient(settings, mock=data_mock) as moz, \
+            ScreenshotClient(settings, mock=data_mock) as shots:
         analyst = Analyst(
             client,
             anthropic_client=anthropic_client,
             meta=meta,
             moz=moz,
+            shots=shots,
             model=settings.model,
             default_country=settings.default_country,
             max_steps=max_steps,
@@ -233,6 +236,7 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
         "answer": result.answer,
         "steps": result.steps,
         "mode": mode,
+        "screenshots": result.screenshots,
         "trace": [
             {"name": c.name, "input": c.input, "result_summary": c.result_summary}
             for c in result.trace
@@ -315,6 +319,7 @@ def status() -> dict:
         "has_provider": _provider_ready(settings),
         "has_meta": _real(settings.apify_token),
         "has_moz": _real(settings.moz_access_id) and _real(settings.moz_secret_key),
+        "has_screenshots": _real(settings.hexomatic_api_key),
         "auth_required": bool(_access_password()),
         "model": settings.model,
         "default_country": settings.default_country,

@@ -62,6 +62,8 @@ class Settings:
     # Moz Links API credentials (SEO authority / backlinks).
     moz_access_id: str | None = None
     moz_secret_key: str | None = None
+    # Hexomatic key — landing-page screenshot capture.
+    hexomatic_api_key: str | None = None
 
     @classmethod
     def load(cls) -> "Settings":
@@ -81,6 +83,7 @@ class Settings:
             apify_token=os.getenv("APIFY_TOKEN"),
             moz_access_id=os.getenv("MOZ_ACCESS_ID"),
             moz_secret_key=os.getenv("MOZ_SECRET_KEY"),
+            hexomatic_api_key=os.getenv("HEXOMATIC_API_KEY"),
         )
 
     def has_provider_auth(self) -> bool:

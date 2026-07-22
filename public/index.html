@@ -122,6 +122,21 @@
   .verdict.mixed, .verdict.inconclusive { background: rgba(245,196,81,.15); color: var(--warn); border: 1px solid rgba(245,196,81,.4); }
 
   .trace-h { margin: 24px 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+
+  /* landing-page capture gallery */
+  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+  .shot {
+    border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    background: var(--panel-2); display: flex; flex-direction: column;
+  }
+  .shot a.thumb { display: block; background: #0b0f18; max-height: 320px; overflow: hidden; }
+  .shot img { width: 100%; display: block; object-fit: cover; object-position: top center; }
+  .shot .cap { padding: 9px 11px; border-top: 1px solid var(--border); }
+  .shot .cap .lbl { font-size: 12.5px; color: var(--text); font-weight: 600;
+                    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .shot .cap .dev { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .shot .cap a { color: var(--accent); font-size: 11.5px; text-decoration: none; }
+  .answer img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
   .step {
     display: flex; gap: 12px; padding: 12px 14px; border: 1px solid var(--border);
     border-radius: 10px; background: var(--panel-2); margin-bottom: 8px;
@@ -309,6 +324,9 @@ function inlineMd(s) {
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*\w])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+    // images before links — the syntaxes overlap
+    .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g,
+             '<img src="$2" alt="$1" loading="lazy">')
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
              '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 }
@@ -395,6 +413,55 @@ function renderResult(data) {
   }
 
   card.appendChild(renderAnswer(data.answer || "(no answer)"));
+
+  // Landing-page captures, if the analyst grabbed any.
+  const shots = (data.screenshots || []).filter(s => s && s.images &&
+                                                Object.keys(s.images).length);
+  if (shots.length) {
+    const h = document.createElement("div");
+    h.className = "trace-h";
+    const n = shots.reduce((t, s) => t + Object.keys(s.images).length, 0);
+    h.textContent = `Landing pages captured · ${n} screenshot${n > 1 ? "s" : ""}`;
+    card.appendChild(h);
+
+    const grid = document.createElement("div");
+    grid.className = "shots";
+    shots.forEach(s => {
+      Object.entries(s.images).forEach(([device, url]) => {
+        const cell = document.createElement("div");
+        cell.className = "shot";
+
+        const a = document.createElement("a");
+        a.className = "thumb";
+        a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
+        const img = document.createElement("img");
+        img.src = url; img.loading = "lazy";
+        img.alt = `${s.label || s.source || "landing page"} (${device})`;
+        a.appendChild(img);
+
+        const cap = document.createElement("div");
+        cap.className = "cap";
+        const lbl = document.createElement("div");
+        lbl.className = "lbl";
+        lbl.textContent = s.label || s.source || "Landing page";
+        lbl.title = s.source || "";
+        const dev = document.createElement("div");
+        dev.className = "dev";
+        dev.textContent = device.replace(/_/g, " ");
+        cap.append(lbl, dev);
+        if (s.source) {
+          const link = document.createElement("a");
+          link.href = s.source; link.target = "_blank"; link.rel = "noopener noreferrer";
+          link.textContent = "visit page ↗";
+          cap.appendChild(link);
+        }
+
+        cell.append(a, cap);
+        grid.appendChild(cell);
+      });
+    });
+    card.appendChild(grid);
+  }
 
   if (data.trace && data.trace.length) {
     const h = document.createElement("div");
