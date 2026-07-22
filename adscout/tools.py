@@ -177,6 +177,34 @@ TOOLS: list[dict] = [
         },
     },
     {
+        "name": "generate_creative",
+        "description": (
+            "GENERATE a new ad creative or landing-page hero mockup as an image, using "
+            "what you learned about the niche. Use only when the user asks to create / "
+            "design / mock up / 'show me an ad or landing page for MY offer' — this "
+            "MAKES new visuals, it does not research existing ones (use "
+            "search_facebook_ads for competitors' real ads, capture_landing_page to "
+            "screenshot a real page). Write the brief yourself, grounded in the offers, "
+            "angles and hooks you found: describe the scene, subject, mood, composition "
+            "and any on-image text. The image is shown to the user automatically — "
+            "never paste the image URL. Costs credits: at most 2 calls per answer."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "brief": {"type": "string", "description": "Detailed visual prompt: scene, subject, style, mood, composition, any text to appear."},
+                "format": {
+                    "type": "string",
+                    "enum": ["ad_square", "ad_story", "ad_landscape", "landing_hero"],
+                    "description": "ad_square = feed; ad_story = vertical reels/stories; ad_landscape = in-feed landscape; landing_hero = landing-page hero banner.",
+                },
+                "count": {"type": "integer", "description": "How many variants (1-3). Default 1.", "minimum": 1, "maximum": 3},
+                "label": {"type": "string", "description": "Short caption, e.g. 'Meal-kit ad concept - convenience angle'."},
+            },
+            "required": ["brief"],
+        },
+    },
+    {
         "name": "capture_landing_page",
         "description": (
             "Take a real SCREENSHOT of a landing page or funnel step so the user can "
@@ -250,7 +278,8 @@ TOOLS: list[dict] = [
 
 
 def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *,
-             default_country: str = "US", meta=None, moz=None, shots=None) -> dict:
+             default_country: str = "US", meta=None, moz=None, shots=None,
+             creative=None) -> dict:
     """Execute a tool call and return the raw JSON result.
 
     SpyFu (Google Search) tools use ``client``; Meta (Facebook/Instagram) tools
@@ -259,6 +288,23 @@ def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *,
     """
     country = tool_input.get("country", default_country)
     limit = tool_input.get("limit", 20)
+
+    # -- Creative generation (fal.ai) --------------------------------------
+    if tool_name == "generate_creative":
+        if creative is None:
+            return {"error": "Creative generation is not available in this run "
+                             "(set FAL_KEY to enable it)."}
+        try:
+            data = creative.generate(
+                tool_input["brief"],
+                fmt=tool_input.get("format", "ad_square"),
+                count=tool_input.get("count", 1),
+            )
+        except Exception as exc:
+            return {"error": str(exc)}
+        data["label"] = tool_input.get("label") or tool_input["brief"][:60]
+        data["_generated_creative"] = True
+        return data
 
     # -- Landing-page screenshot ------------------------------------------
     if tool_name == "capture_landing_page":

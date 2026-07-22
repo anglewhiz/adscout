@@ -64,6 +64,8 @@ class Settings:
     moz_secret_key: str | None = None
     # Hexomatic key — landing-page screenshot capture.
     hexomatic_api_key: str | None = None
+    # fal.ai key — ad-creative / landing-page mockup generation.
+    fal_key: str | None = None
 
     @classmethod
     def load(cls) -> "Settings":
@@ -84,6 +86,7 @@ class Settings:
             moz_access_id=os.getenv("MOZ_ACCESS_ID"),
             moz_secret_key=os.getenv("MOZ_SECRET_KEY"),
             hexomatic_api_key=os.getenv("HEXOMATIC_API_KEY"),
+            fal_key=os.getenv("FAL_KEY"),
         )
 
     def has_provider_auth(self) -> bool:

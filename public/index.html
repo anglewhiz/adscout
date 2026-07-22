@@ -360,6 +360,7 @@ function updateStatusLine() {
     ["Meta", CONFIG.has_meta],
     ["Moz", CONFIG.has_moz],
     ["Screens", CONFIG.has_screenshots],
+    ["Creative", CONFIG.has_creative],
     ["Claude", CONFIG.has_anthropic],
   ];
   $("status").innerHTML = chans.map(([name, on]) =>
@@ -524,6 +525,38 @@ function renderResult(data) {
           link.textContent = "visit page ↗";
           cap.appendChild(link);
         }
+        cell.append(a, cap);
+        grid.appendChild(cell);
+      });
+    });
+    card.appendChild(grid);
+  }
+
+  // Generated ad concepts / hero mockups (fal.ai).
+  const creatives = (data.creatives || []).filter(c => c && (c.images || []).length);
+  if (creatives.length) {
+    const n = creatives.reduce((t, c) => t + c.images.length, 0);
+    card.appendChild(sectionHead(`Generated concepts · ${n} image${n > 1 ? "s" : ""}`));
+    const grid = document.createElement("div");
+    grid.className = "shots";
+    creatives.forEach(c => {
+      c.images.forEach(im => {
+        if (!im || !im.url) return;
+        const cell = document.createElement("div");
+        cell.className = "shot";
+        const a = document.createElement("a");
+        a.className = "thumb"; a.href = im.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+        const img = document.createElement("img");
+        img.src = im.url; img.loading = "lazy"; img.alt = c.label || "generated concept";
+        a.appendChild(img);
+        const cap = document.createElement("div");
+        cap.className = "cap";
+        const lbl = document.createElement("div");
+        lbl.className = "lbl"; lbl.textContent = c.label || "Concept";
+        lbl.title = c.brief || "";
+        const dev = document.createElement("div");
+        dev.className = "dev"; dev.textContent = (c.format || "").replace(/_/g, " ");
+        cap.append(lbl, dev);
         cell.append(a, cap);
         grid.appendChild(cell);
       });

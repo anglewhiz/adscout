@@ -32,6 +32,11 @@ and shows it to the user. Great for the landing page behind a Meta ad (its \
 linkUrl) or a funnel/offer page. Slow and metered — at most 1-2 per answer, only \
 when seeing the page matters. The image is displayed automatically; never paste \
 the image URL into your answer.
+- CREATE: generate_creative makes NEW ad creatives or landing-page hero mockups \
+as images. Only when the user asks to design/create/mock up something for THEIR \
+offer — never to research competitors. Ground the brief in the hooks, offers and \
+angles you actually found, and say in one line why the concept follows from the \
+evidence. Metered: at most 2 calls per answer.
 
 Rules:
 - Ground every substantive claim in data you retrieved via the tools. If you did \
@@ -87,6 +92,8 @@ class AnalystResult:
     steps: int = 0
     # Landing-page captures made during the run, rendered as a gallery.
     screenshots: list[dict] = field(default_factory=list)
+    # Images generated during the run (ad concepts / hero mockups).
+    creatives: list[dict] = field(default_factory=list)
 
 
 class Analyst:
@@ -98,6 +105,7 @@ class Analyst:
         meta=None,
         moz=None,
         shots=None,
+        creative=None,
         model: str = "claude-sonnet-5",
         default_country: str = "US",
         max_steps: int = 8,
@@ -107,6 +115,7 @@ class Analyst:
         self.meta = meta
         self.moz = moz
         self.shots = shots
+        self.creative = creative
         self.model = model
         self.default_country = default_country
         self.max_steps = max_steps
@@ -120,6 +129,7 @@ class Analyst:
         messages = [{"role": "user", "content": question}]
         trace: list[ToolCall] = []
         screenshots: list[dict] = []
+        creatives: list[dict] = []
 
         for step in range(1, self.max_steps + 1):
             resp = self.ai.messages.create(
@@ -136,7 +146,8 @@ class Analyst:
                     if getattr(b, "type", None) == "text"
                 ).strip()
                 return AnalystResult(answer=answer, trace=trace, steps=step,
-                                     screenshots=screenshots)
+                                     screenshots=screenshots,
+                                     creatives=creatives)
 
             # Record the assistant turn (with its tool_use blocks) verbatim.
             messages.append({"role": "assistant", "content": resp.content})
@@ -149,8 +160,15 @@ class Analyst:
                     data = dispatch(
                         self.spyfu, block.name, dict(block.input),
                         default_country=self.default_country, meta=self.meta,
-                        moz=self.moz, shots=self.shots,
+                        moz=self.moz, shots=self.shots, creative=self.creative,
                     )
+                    if isinstance(data, dict) and data.get("_generated_creative"):
+                        creatives.append({
+                            "label": data.get("label"),
+                            "format": data.get("format"),
+                            "brief": data.get("brief"),
+                            "images": data.get("images") or [],
+                        })
                     if isinstance(data, dict) and data.get("_captured_screenshot"):
                         screenshots.append({
                             "label": data.get("label"),
@@ -177,6 +195,7 @@ class Analyst:
             trace=trace,
             steps=self.max_steps,
             screenshots=screenshots,
+            creatives=creatives,
         )
 
 
