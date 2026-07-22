@@ -44,9 +44,28 @@ linking domains) vs thin//new, and to size up how hard a niche is to rank in. A 
 site with no ads but strong authority competes organically, not on spend.
 - Note data limitations honestly (estimates, sample sizes, single-country scope, \
 and which channel a finding came from).
-- End with a short, clearly labeled verdict: SUPPORTED / REFUTED / MIXED / \
-INCONCLUSIVE, followed by the 3-6 facts (with channel) that drove it.
-Keep the final answer tight and skimmable."""
+
+FORMAT — return the final answer as Markdown in exactly this shape:
+
+## Answer
+Two to four sentences answering the question directly, up front.
+
+## Evidence
+A "### " sub-heading for EACH channel you actually pulled data from — use the \
+names "Google Search (SpyFu)", "Facebook & Instagram (Meta)", "SEO Authority \
+(Moz)". Under each, tight bullets of concrete findings with the **numbers in \
+bold**. Omit any channel you did not use. If a channel returned nothing, say so \
+in one bullet — that absence is itself evidence.
+
+## Verdict: SUPPORTED
+(Use SUPPORTED, REFUTED, MIXED, or INCONCLUSIVE on that heading line.) Follow \
+with one sentence of reasoning, then:
+
+**Key numbers**
+- 3-6 bullets, each a concrete figure with its channel in parentheses.
+
+Style: bold every metric, keep bullets to one line where possible, no filler or \
+restating the question. Never invent a number to fill the template."""
 
 
 @dataclass

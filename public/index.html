@@ -88,10 +88,34 @@
   .dot.ok { background: var(--good); } .dot.no { background: var(--bad); }
 
   #out { margin-top: 22px; }
-  .answer { white-space: pre-wrap; word-wrap: break-word; }
+  .answer { word-wrap: break-word; font-size: 14.5px; line-height: 1.62; }
+  .answer > *:first-child { margin-top: 0; }
+  .answer h2 {
+    font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: .2px;
+    margin: 26px 0 12px; padding-bottom: 7px; border-bottom: 1px solid var(--border);
+  }
+  .answer h3 {
+    font-size: 12px; font-weight: 700; color: var(--accent);
+    text-transform: uppercase; letter-spacing: .8px; margin: 18px 0 8px;
+  }
+  .answer p { margin: 0 0 11px; color: #d6dcea; }
+  .answer ul, .answer ol { margin: 0 0 13px; padding-left: 20px; }
+  .answer li { margin-bottom: 6px; color: #d6dcea; }
+  .answer li::marker { color: var(--accent); }
+  .answer strong { color: #fff; font-weight: 650; }
+  .answer em { color: var(--muted); font-style: italic; }
+  .answer a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted; }
+  .answer a:hover { filter: brightness(1.2); }
+  .answer hr { border: 0; border-top: 1px solid var(--border); margin: 18px 0 12px; }
+  .answer table { width: 100%; border-collapse: collapse; margin: 4px 0 14px; font-size: 13px; }
+  .answer th, .answer td { padding: 7px 10px; border: 1px solid var(--border); text-align: left; }
+  .answer th { background: var(--panel-2); color: var(--muted);
+               text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+  .tbl-wrap { overflow-x: auto; }
+  .verdict-wrap { margin: 22px 0 12px; }
   .answer .verdict {
-    display: inline-block; margin: 4px 0; padding: 4px 12px; border-radius: 8px;
-    font-weight: 700; letter-spacing: .3px;
+    display: inline-block; padding: 8px 16px; border-radius: 10px;
+    font-weight: 700; letter-spacing: .3px; font-size: 15px;
   }
   .verdict.supported { background: rgba(55,201,138,.15); color: var(--good); border: 1px solid rgba(55,201,138,.4); }
   .verdict.refuted { background: rgba(255,107,107,.15); color: var(--bad); border: 1px solid rgba(255,107,107,.4); }
@@ -272,21 +296,88 @@ function verdictClass(line) {
   return "";
 }
 
+// --- Minimal, safe Markdown renderer -------------------------------------
+// Escapes first, then applies formatting, so model output can never inject HTML.
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+
+function inlineMd(s) {
+  return s
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*\w])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+             '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+}
+
+// A heading/line that announces the verdict becomes a coloured badge.
+function verdictHtml(raw) {
+  const t = raw.replace(/^#+\s*/, "").replace(/^\*\*|\*\*$/g, "").trim();
+  if (!/^verdict\b/i.test(t)) return null;
+  return `<div class="verdict-wrap"><span class="verdict ${verdictClass(t)}">`
+       + `${inlineMd(escapeHtml(t))}</span></div>`;
+}
+
+function renderMarkdown(text) {
+  const lines = String(text || "").split("\n");
+  let html = "", list = null, table = [];
+
+  const closeList = () => { if (list) { html += `</${list}>`; list = null; } };
+  const flushTable = () => {
+    if (!table.length) return;
+    const cells = r => r.replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+    const head = cells(table[0]);
+    const body = table.slice(table.length > 1 && /^[\s|:-]+$/.test(table[1]) ? 2 : 1);
+    html += '<div class="tbl-wrap"><table><thead><tr>'
+          + head.map(h => `<th>${inlineMd(escapeHtml(h))}</th>`).join("")
+          + "</tr></thead><tbody>"
+          + body.map(r => "<tr>" + cells(r).map(c => `<td>${inlineMd(escapeHtml(c))}</td>`).join("") + "</tr>").join("")
+          + "</tbody></table></div>";
+    table = [];
+  };
+
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, "");
+
+    if (/^\s*\|.*\|\s*$/.test(line)) { closeList(); table.push(line.trim()); continue; }
+    flushTable();
+
+    if (!line.trim()) { closeList(); continue; }
+
+    const v = verdictHtml(line);
+    if (v) { closeList(); html += v; continue; }
+
+    let m;
+    if ((m = line.match(/^\s*#{3,}\s+(.*)$/))) {
+      closeList(); html += `<h3>${inlineMd(escapeHtml(m[1]))}</h3>`; continue;
+    }
+    if ((m = line.match(/^\s*#{1,2}\s+(.*)$/))) {
+      closeList(); html += `<h2>${inlineMd(escapeHtml(m[1]))}</h2>`; continue;
+    }
+    if (/^\s*(---|\*\*\*|___)\s*$/.test(line)) { closeList(); html += "<hr>"; continue; }
+    if ((m = line.match(/^\s*[-*+]\s+(.*)$/))) {
+      if (list !== "ul") { closeList(); html += "<ul>"; list = "ul"; }
+      html += `<li>${inlineMd(escapeHtml(m[1]))}</li>`; continue;
+    }
+    if ((m = line.match(/^\s*\d+[.)]\s+(.*)$/))) {
+      if (list !== "ol") { closeList(); html += "<ol>"; list = "ol"; }
+      html += `<li>${inlineMd(escapeHtml(m[1]))}</li>`; continue;
+    }
+    closeList();
+    html += `<p>${inlineMd(escapeHtml(line))}</p>`;
+  }
+  flushTable();
+  closeList();
+  return html;
+}
+
 function renderAnswer(text) {
   const div = document.createElement("div");
   div.className = "answer";
-  const lines = text.split("\n");
-  lines.forEach((line, i) => {
-    if (/^\s*VERDICT\s*:/i.test(line)) {
-      const span = document.createElement("span");
-      span.className = "verdict " + verdictClass(line);
-      span.textContent = line.trim();
-      div.appendChild(span);
-    } else {
-      div.appendChild(document.createTextNode(line));
-    }
-    if (i < lines.length - 1) div.appendChild(document.createTextNode("\n"));
-  });
+  div.innerHTML = renderMarkdown(text);
   return div;
 }
 
