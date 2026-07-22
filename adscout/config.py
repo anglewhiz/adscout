@@ -59,6 +59,9 @@ class Settings:
     spyfu_basic_auth: str | None = None
     # Apify token for the Meta (Facebook/Instagram) Ad Library scraper.
     apify_token: str | None = None
+    # Moz Links API credentials (SEO authority / backlinks).
+    moz_access_id: str | None = None
+    moz_secret_key: str | None = None
 
     @classmethod
     def load(cls) -> "Settings":
@@ -76,6 +79,8 @@ class Settings:
             model=os.getenv("ANALYST_MODEL", "claude-sonnet-5"),
             default_country=os.getenv("SPYFU_COUNTRY", "US"),
             apify_token=os.getenv("APIFY_TOKEN"),
+            moz_access_id=os.getenv("MOZ_ACCESS_ID"),
+            moz_secret_key=os.getenv("MOZ_SECRET_KEY"),
         )
 
     def has_provider_auth(self) -> bool:

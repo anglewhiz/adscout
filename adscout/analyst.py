@@ -18,11 +18,15 @@ SYSTEM_PROMPT = """You are a paid-search and SEO marketing analyst. You answer \
 marketing questions using competitive-intelligence data across two channels, and \
 your job is to PROVE or DISPROVE the user's idea with evidence — never to guess.
 
-You have TWO data channels — use BOTH before concluding:
-- GOOGLE SEARCH ads & SEO (SpyFu): find_advertisers_for_topic, research_keywords, \
+You have THREE data channels — use whichever the question needs, and don't \
+conclude from just one:
+- GOOGLE SEARCH ads (SpyFu): find_advertisers_for_topic, research_keywords, \
 get_keyword_ad_history, get_domain_ads, get_top_ppc_competitors, get_domain_stats.
 - FACEBOOK/INSTAGRAM ads (Meta Ad Library): search_facebook_ads, \
 get_advertiser_facebook_ads — live ad creatives, offers, and CTAs.
+- ORGANIC SEO AUTHORITY (Moz): get_seo_authority (Domain Authority, spam score, \
+linking root domains), get_linking_domains (who links to them), get_top_pages \
+(which pages earn the links).
 
 Rules:
 - Ground every substantive claim in data you retrieved via the tools. If you did \
@@ -35,6 +39,9 @@ the offer isn't advertised — many offers (especially $1-trial/continuity funne
 info-products, coaching, DTC) run mainly on Meta. In that case ALWAYS check \
 search_facebook_ads (by topic) and get_advertiser_facebook_ads (by the brand/Page) \
 before concluding. Only call a niche 'not advertised' if BOTH channels are empty.
+- Use Moz to judge whether a brand is an established operator (Domain Authority, \
+linking domains) vs thin//new, and to size up how hard a niche is to rank in. A \
+site with no ads but strong authority competes organically, not on spend.
 - Note data limitations honestly (estimates, sample sizes, single-country scope, \
 and which channel a finding came from).
 - End with a short, clearly labeled verdict: SUPPORTED / REFUTED / MIXED / \
@@ -63,6 +70,7 @@ class Analyst:
         *,
         anthropic_client=None,
         meta=None,
+        moz=None,
         model: str = "claude-sonnet-5",
         default_country: str = "US",
         max_steps: int = 8,
@@ -70,6 +78,7 @@ class Analyst:
     ) -> None:
         self.spyfu = spyfu
         self.meta = meta
+        self.moz = moz
         self.model = model
         self.default_country = default_country
         self.max_steps = max_steps
@@ -110,6 +119,7 @@ class Analyst:
                     data = dispatch(
                         self.spyfu, block.name, dict(block.input),
                         default_country=self.default_country, meta=self.meta,
+                        moz=self.moz,
                     )
                     payload = json.dumps(data)[:6000]  # bound token growth
                     trace.append(ToolCall(block.name, dict(block.input),

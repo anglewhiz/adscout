@@ -22,6 +22,7 @@ from .client import SpyFuClient
 from .config import Settings
 from .endpoints import COUNTRY_CODES
 from .meta_client import MetaAdLibraryClient
+from .moz_client import MozClient
 
 # Values from .env.example that mean "not actually filled in yet".
 _PLACEHOLDERS = {"", "your_secret_key", "00000000-0000-0000-0000-000000000000"}
@@ -201,11 +202,13 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
         data_mock = False
 
     with SpyFuClient(settings, mock=data_mock) as client, \
-            MetaAdLibraryClient(settings, mock=data_mock) as meta:
+            MetaAdLibraryClient(settings, mock=data_mock) as meta, \
+            MozClient(settings, mock=data_mock) as moz:
         analyst = Analyst(
             client,
             anthropic_client=anthropic_client,
             meta=meta,
+            moz=moz,
             model=settings.model,
             default_country=settings.default_country,
             max_steps=max_steps,
@@ -297,6 +300,7 @@ def status() -> dict:
         "has_anthropic": _real(settings.anthropic_api_key),
         "has_provider": _provider_ready(settings),
         "has_meta": _real(settings.apify_token),
+        "has_moz": _real(settings.moz_access_id) and _real(settings.moz_secret_key),
         "auth_required": bool(_access_password()),
         "model": settings.model,
         "default_country": settings.default_country,

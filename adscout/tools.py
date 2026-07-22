@@ -176,18 +176,80 @@ TOOLS: list[dict] = [
             "required": ["advertiser"],
         },
     },
+    {
+        "name": "get_seo_authority",
+        "description": (
+            "Get a domain's ORGANIC SEO strength from Moz: Domain Authority (0-100), "
+            "Page Authority, spam score, number of linking root domains, and total "
+            "inbound links. Use to judge how established/credible a site is, how hard "
+            "it would be to outrank, or whether a brand is a real operator vs thin. "
+            "Complements the ad data (SpyFu = Google ads, Meta = Facebook ads)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "domain": {"type": "string", "description": "Domain to analyze, e.g. 'chewy.com'."},
+            },
+            "required": ["domain"],
+        },
+    },
+    {
+        "name": "get_linking_domains",
+        "description": (
+            "List the highest-authority websites that LINK TO a domain (its backlink "
+            "sources), from Moz. Use to see where a competitor earns authority from — "
+            "press, partners, directories, communities — and to find link opportunities."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "domain": {"type": "string", "description": "Domain to analyze."},
+                "limit": _LIMIT,
+            },
+            "required": ["domain"],
+        },
+    },
+    {
+        "name": "get_top_pages",
+        "description": (
+            "List a domain's strongest pages by link equity (Moz): URL, title, Page "
+            "Authority, and how many root domains link to each. Use to see which "
+            "content actually earns links and drives a competitor's organic presence."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "domain": {"type": "string", "description": "Domain to analyze."},
+                "limit": _LIMIT,
+            },
+            "required": ["domain"],
+        },
+    },
 ]
 
 
 def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *,
-             default_country: str = "US", meta=None) -> dict:
+             default_country: str = "US", meta=None, moz=None) -> dict:
     """Execute a tool call and return the raw JSON result.
 
     SpyFu (Google Search) tools use ``client``; Meta (Facebook/Instagram) tools
-    use ``meta`` (a MetaAdLibraryClient), which may be None when unavailable.
+    use ``meta`` (a MetaAdLibraryClient); Moz (SEO authority/backlinks) tools
+    use ``moz`` (a MozClient). ``meta``/``moz`` may be None when unavailable.
     """
     country = tool_input.get("country", default_country)
     limit = tool_input.get("limit", 20)
+
+    # -- Moz (SEO authority / backlinks) ----------------------------------
+    if tool_name in ("get_seo_authority", "get_linking_domains", "get_top_pages"):
+        if moz is None:
+            return {"error": "SEO authority lookups are not available in this run "
+                             "(set MOZ_ACCESS_ID / MOZ_SECRET_KEY to enable them)."}
+        domain = tool_input["domain"]
+        if tool_name == "get_seo_authority":
+            return moz.url_metrics(domain)
+        if tool_name == "get_linking_domains":
+            return moz.linking_domains(domain, limit=limit)
+        return moz.top_pages(domain, limit=limit)
 
     # -- Meta (Facebook/Instagram) Ad Library -----------------------------
     if tool_name in ("search_facebook_ads", "get_advertiser_facebook_ads"):
