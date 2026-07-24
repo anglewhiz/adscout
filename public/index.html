@@ -144,6 +144,9 @@
     color: var(--ink-faint); margin: 30px 0 13px; padding-bottom: 9px;
     border-bottom: 1px solid var(--hairline);
   }
+  /* the strategic-interpretation layer, visually flagged as the value-add */
+  .answer h2.strat { color: var(--primary-hover); border-bottom-color: rgba(94,106,210,.4); }
+  .answer h2.strat::before { content: "◆ "; opacity: .8; }
   .answer h3 {
     font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: -.1px;
     margin: 20px 0 9px; padding-left: 11px; border-left: 2px solid var(--hairline-strong);
@@ -447,7 +450,9 @@ function renderMarkdown(text) {
       continue;
     }
     if ((m = line.match(/^\s*#{1,2}\s+(.*)$/))) {
-      closeList(); html += `<h2>${inlineMd(escapeHtml(m[1]))}</h2>`; continue;
+      closeList();
+      const sc = /strateg/i.test(m[1]) ? ' class="strat"' : '';
+      html += `<h2${sc}>${inlineMd(escapeHtml(m[1]))}</h2>`; continue;
     }
     if (/^\s*(---|\*\*\*|___)\s*$/.test(line)) { closeList(); html += "<hr>"; continue; }
     if ((m = line.match(/^\s*[-*+]\s+(.*)$/))) {

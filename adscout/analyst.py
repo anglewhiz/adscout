@@ -12,6 +12,7 @@ import json
 from dataclasses import dataclass, field
 
 from .client import SpyFuClient
+from .strategy import STRATEGY_FRAME
 from .tools import TOOLS, dispatch
 
 SYSTEM_PROMPT = """You are a paid-search and SEO marketing analyst. You answer \
@@ -75,7 +76,12 @@ with one sentence of reasoning, then:
 - 3-6 bullets, each a concrete figure with its channel in parentheses.
 
 Style: bold every metric, keep bullets to one line where possible, no filler or \
-restating the question. Never invent a number to fill the template."""
+restating the question. Never invent a number to fill the template.
+
+When a "## Strategic read" applies (see the lenses below), place it after the \
+Verdict block as the closing section.
+
+""" + STRATEGY_FRAME
 
 
 @dataclass
