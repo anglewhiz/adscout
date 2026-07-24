@@ -82,7 +82,9 @@ standard "## Answer / ## Evidence / ## Verdict" format above. Instead:
 Field notes: opportunity_score and market_score are 0-100 (your weighting of
 volume vs competition vs intent vs differentiation); confidence_score is 0-1
 (how much real data backed the object). funnel_stage is TOFU/MOFU/BOFU. Keep
-keyword_opportunities to the ~12 strongest, ranked by priority."""
+keyword_opportunities to the ~12 strongest, ranked by priority. Keep every
+string to one concise sentence and RETURN THE COMPLETE JSON OBJECT — do not let
+it truncate; trim depth before you sacrifice valid, closed JSON."""
 
 
 def extract_research(text: str) -> dict | None:

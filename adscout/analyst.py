@@ -182,7 +182,7 @@ class Analyst:
         max_tokens = self.max_tokens
         if research_mode:
             system = SYSTEM_PROMPT + "\n\n" + RESEARCH_INSTRUCTIONS
-            max_tokens = max(self.max_tokens, 4096)  # the object is large
+            max_tokens = max(self.max_tokens, 8192)  # the full object is large
         elif _wants_creative(question):
             system = SYSTEM_PROMPT + "\n\n" + COPY_FRAME
         else:

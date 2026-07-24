@@ -238,6 +238,29 @@
   details.json-details[open] summary::before { content: "▾ "; }
   .json-block { max-height: 380px; }
 
+  /* full research report */
+  .rep-h { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+           color: var(--ink-faint); margin: 26px 0 12px; padding-bottom: 8px;
+           border-bottom: 1px solid var(--hairline); }
+  .rep-p { color: var(--ink-muted); margin: 0 0 10px; font-size: 13.5px; line-height: 1.6; }
+  .rep-list { margin: 0 0 12px; padding-left: 18px; }
+  .rep-list li { margin-bottom: 6px; color: var(--ink-muted); font-size: 13.5px; }
+  .rep-list li::marker { color: var(--ink-faint); }
+  .rep-list.warn li::marker { color: var(--warning); }
+  .rep-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .rep-card { border: 1px solid var(--hairline); border-radius: 10px; padding: 12px 14px; background: var(--surface-2); }
+  .rep-card .t { color: var(--ink); font-weight: 600; font-size: 13px; margin-bottom: 5px; }
+  .rep-card .d { color: var(--ink-subtle); font-size: 12.5px; line-height: 1.5; margin-bottom: 4px; }
+  .rep-card .u { color: var(--ink-faint); font-size: 12px; }
+  .cols3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 12px; }
+  @media (max-width: 620px) { .cols3 { grid-template-columns: 1fr; } }
+  .cols3 .col .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--ink-faint); margin-bottom: 6px; }
+  .chips-sm { display: flex; flex-wrap: wrap; gap: 5px; margin: 4px 0; }
+  .chips-sm span { background: var(--surface-3); border: 1px solid var(--hairline); color: var(--ink-subtle);
+                   border-radius: 6px; padding: 2px 8px; font-size: 12px; }
+  .strat-block { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
+  @media (max-width: 620px) { .strat-block { grid-template-columns: 1fr; } }
+
   /* evidence trace */
   .step { display: flex; gap: 12px; padding: 11px 13px; border: 1px solid var(--hairline);
           border-radius: var(--r-md); background: var(--surface-2); margin-bottom: 7px; }
@@ -533,96 +556,248 @@ function sectionHead(text) {
 
 const fmtNum = n => (n === null || n === undefined || n === "") ? "—"
   : (typeof n === "number" ? n.toLocaleString() : String(n));
+const has = a => Array.isArray(a) && a.length > 0;
+const asText = x => typeof x === "string" ? x : JSON.stringify(x);
+
+function el(tag, cls, html) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html != null) e.innerHTML = html;
+  return e;
+}
+
+function keywordTable(kops) {
+  const cols = [["#","priority"],["Keyword","keyword"],["Vol","monthly_volume"],
+    ["CPC","cpc"],["Comp","paid_competitors"],["Diff","difficulty"],
+    ["Intent","search_intent"],["Stage","funnel_stage"],["Score","opportunity_score"],
+    ["Recommendation","recommendation"]];
+  const tw = el("div", "tbl-wrap");
+  let t = '<table class="kw-table"><thead><tr>' + cols.map(c => `<th>${c[0]}</th>`).join("") + "</tr></thead><tbody>";
+  kops.forEach(k => {
+    t += "<tr>" + cols.map(([label, key]) => {
+      let v = k[key];
+      if (key === "cpc") return `<td class="num">${(v == null) ? "—" : "$" + escapeHtml(String(v))}</td>`;
+      if (["priority","monthly_volume","paid_competitors","difficulty"].includes(key))
+        return `<td class="num">${fmtNum(v)}</td>`;
+      if (key === "opportunity_score")
+        return `<td class="num"><span class="kw-score">${fmtNum(v)}</span></td>`;
+      if (key === "keyword") return `<td class="kw">${escapeHtml(String(v ?? ""))}</td>`;
+      return `<td>${escapeHtml(String(v ?? "—"))}</td>`;
+    }).join("") + "</tr>";
+  });
+  t += "</tbody></table>";
+  tw.innerHTML = t;
+  return tw;
+}
+
+// Build a clean Markdown document from the research object (for Download MD).
+function researchToMarkdown(r) {
+  const meta = r.research_summary || {}, sum = r.market_summary || {};
+  const L = [], row = a => "| " + a.join(" | ") + " |";
+  L.push(`# Keyword Research — ${meta.niche || ""}`.trim());
+  const facts = [];
+  if (meta.research_method) facts.push(`**Method:** ${meta.research_method}`);
+  if (meta.data_source) facts.push(`**Source:** ${meta.data_source}`);
+  if (meta.total_keywords != null) facts.push(`**Keywords analysed:** ${meta.total_keywords}`);
+  if (meta.generated_at) facts.push(`**Generated:** ${meta.generated_at}`);
+  if (facts.length) L.push(facts.join("  \n"));
+  if (sum.top_opportunity || sum.overall_recommendation) {
+    L.push("## Market Summary");
+    if (sum.top_opportunity) L.push(`**Top opportunity:** ${sum.top_opportunity}`);
+    if (sum.positioning_angle) L.push(`**Positioning angle:** ${sum.positioning_angle}`);
+    if (sum.reason) L.push(`**Why:** ${sum.reason}`);
+    if (sum.overall_recommendation) L.push(`**Recommendation:** ${sum.overall_recommendation}`);
+    const sc = [];
+    if (sum.market_score != null) sc.push(`market score ${sum.market_score}`);
+    if (r.confidence_score != null) sc.push(`confidence ${r.confidence_score}`);
+    if (sc.length) L.push(`_${sc.join(" · ")}_`);
+  }
+  if (has(r.keyword_opportunities)) {
+    L.push("## Keyword Opportunities");
+    L.push(row(["#","Keyword","Vol","CPC","Comp","Diff","Intent","Stage","Score","Recommendation"]));
+    L.push(row(Array(10).fill("---")));
+    r.keyword_opportunities.forEach(k => L.push(row([
+      k.priority ?? "", k.keyword ?? "", k.monthly_volume ?? "", k.cpc == null ? "—" : "$" + k.cpc,
+      k.paid_competitors ?? "", k.difficulty ?? "—", k.search_intent ?? "", k.funnel_stage ?? "",
+      k.opportunity_score ?? "", String(k.recommendation || "").replace(/\|/g, "/")])));
+  }
+  if (has(r.secondary_opportunities)) {
+    L.push("## Secondary Opportunities");
+    r.secondary_opportunities.forEach(s => L.push(`- **${s.keyword || ""}** — ${s.why_it_matters || ""}${s.best_use_case ? ` _(${s.best_use_case})_` : ""}`));
+  }
+  if (has(r.avoid_keywords)) {
+    L.push("## Keywords to Avoid");
+    r.avoid_keywords.forEach(a => L.push(`- **${a.keyword || ""}** — ${a.reason || ""}`));
+  }
+  if (has(r.keyword_clusters)) {
+    L.push("## Keyword Clusters");
+    r.keyword_clusters.forEach(c => {
+      L.push(`### ${c.cluster || c.primary_keyword || ""}`);
+      if (c.primary_keyword) L.push(`- **Primary:** ${c.primary_keyword}`);
+      if (has(c.supporting_keywords)) L.push(`- **Supporting:** ${c.supporting_keywords.join(", ")}`);
+      if (c.intent) L.push(`- **Intent:** ${c.intent}`);
+      if (c.recommended_page) L.push(`- **Page:** ${c.recommended_page}`);
+    });
+  }
+  [["Problems","customer_problems"],["Desires","customer_desires"],["Objections","customer_objections"]]
+    .forEach(([lbl, k]) => { if (has(r[k])) { L.push(`## Customer ${lbl}`); r[k].forEach(x => L.push(`- ${asText(x)}`)); } });
+  if (has(r.content_opportunities)) {
+    L.push("## Content Opportunities");
+    L.push(row(["Searcher problem","Keyword","Stage","Asset","CTA"]));
+    L.push(row(Array(5).fill("---")));
+    r.content_opportunities.forEach(c => L.push(row([c.searcher_problem || "", c.target_keyword || "", c.funnel_stage || "", c.recommended_asset || "", c.recommended_cta || ""])));
+  }
+  if (has(r.offer_opportunities)) { L.push("## Offer Opportunities"); r.offer_opportunities.forEach(o => L.push(`- ${asText(o)}`)); }
+  if (has(r.competitor_gaps)) { L.push("## Competitor Gaps"); r.competitor_gaps.forEach(o => L.push(`- ${asText(o)}`)); }
+  const strat = (title, obj, key) => {
+    if (!obj) return;
+    if (!has(obj[key]) && !has(obj.notes)) return;
+    L.push(`## ${title}`);
+    (obj[key] || []).forEach(x => L.push(`- ${asText(x)}`));
+    (obj.notes || []).forEach(n => L.push(`  - _${asText(n)}_`));
+  };
+  strat("PPC Strategy", r.ppc_strategy, "campaigns");
+  strat("SEO Strategy", r.seo_strategy, "clusters");
+  if (has(r.next_actions)) {
+    L.push("## Next Actions");
+    r.next_actions.slice().sort((a, b) => (a.priority || 0) - (b.priority || 0))
+      .forEach((a, i) => L.push(`${i + 1}. **${a.task || ""}** — ${a.reason || ""}`));
+  }
+  return L.join("\n\n") + "\n";
+}
+
+function download(name, text, type) {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+}
 
 function renderResearch(r) {
   const wrap = document.createElement("div");
-  const meta = r.research_summary || {};
-  const sum = r.market_summary || {};
+  const meta = r.research_summary || {}, sum = r.market_summary || {};
   const kops = Array.isArray(r.keyword_opportunities) ? r.keyword_opportunities : [];
+  const esc = s => escapeHtml(String(s));
+  const slug = (meta.niche || "keywords").toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
   wrap.appendChild(sectionHead(
-    `Keyword research object${meta.niche ? " · " + meta.niche : ""}${kops.length ? " · " + kops.length + " keywords" : ""}`));
+    `Keyword research${meta.niche ? " · " + meta.niche : ""}${kops.length ? " · " + kops.length + " keywords" : ""}`));
 
-  // readable summary
-  if (sum.top_opportunity || sum.positioning_angle || sum.overall_recommendation) {
-    const head = document.createElement("div");
-    head.className = "research-head";
-    let h = "";
-    if (sum.top_opportunity) h += `<div class="top">◆ Top opportunity: ${escapeHtml(String(sum.top_opportunity))}</div>`;
-    if (sum.positioning_angle) h += `<div class="angle">${escapeHtml(String(sum.positioning_angle))}</div>`;
-    if (sum.overall_recommendation) h += `<div class="rec">${escapeHtml(String(sum.overall_recommendation))}</div>`;
-    const facts = [];
-    if (meta.research_method) facts.push(escapeHtml(String(meta.research_method)));
-    if (sum.market_score != null) facts.push("market score " + escapeHtml(String(sum.market_score)));
-    if (r.confidence_score != null) facts.push("confidence " + escapeHtml(String(r.confidence_score)));
-    if (meta.generated_at) facts.push(escapeHtml(String(meta.generated_at)));
-    if (facts.length) h += `<div class="facts">${facts.join(" · ")}</div>`;
-    head.innerHTML = h;
-    wrap.appendChild(head);
-  }
-
-  // keyword table
-  if (kops.length) {
-    const cols = [["#","priority"],["Keyword","keyword"],["Vol","monthly_volume"],
-      ["CPC","cpc"],["Comp","paid_competitors"],["Diff","difficulty"],
-      ["Intent","search_intent"],["Stage","funnel_stage"],["Score","opportunity_score"],
-      ["Recommendation","recommendation"]];
-    const tw = document.createElement("div");
-    tw.className = "tbl-wrap";
-    let t = '<table class="kw-table"><thead><tr>' +
-      cols.map(c => `<th>${c[0]}</th>`).join("") + "</tr></thead><tbody>";
-    kops.forEach(k => {
-      t += "<tr>" + cols.map(([label, key]) => {
-        let v = k[key];
-        if (key === "cpc" && (v === null || v === undefined)) return `<td class="num">—</td>`;
-        if (key === "cpc") return `<td class="num">$${escapeHtml(String(v))}</td>`;
-        if (["priority","monthly_volume","paid_competitors","difficulty"].includes(key))
-          return `<td class="num">${fmtNum(v)}</td>`;
-        if (key === "opportunity_score")
-          return `<td class="num"><span class="kw-score">${fmtNum(v)}</span></td>`;
-        if (key === "keyword") return `<td class="kw">${escapeHtml(String(v ?? ""))}</td>`;
-        return `<td>${escapeHtml(String(v ?? "—"))}</td>`;
-      }).join("") + "</tr>";
-    });
-    t += "</tbody></table>";
-    tw.innerHTML = t;
-    wrap.appendChild(tw);
-  }
-
-  // copy / download + raw JSON
+  // export actions (JSON + MD)
+  const actions = el("div", "json-actions");
+  const mkBtn = (label, fn) => { const b = el("button", "btn-sm", label); b.type = "button"; b.onclick = fn; return b; };
   const pretty = JSON.stringify(r, null, 2);
-  const actions = document.createElement("div");
-  actions.className = "json-actions";
-  const copyBtn = document.createElement("button");
-  copyBtn.type = "button"; copyBtn.className = "btn-sm"; copyBtn.textContent = "Copy JSON";
-  copyBtn.onclick = () => {
-    navigator.clipboard.writeText(pretty).then(() => {
-      copyBtn.textContent = "Copied ✓";
-      setTimeout(() => { copyBtn.textContent = "Copy JSON"; }, 1500);
-    });
-  };
-  const dlBtn = document.createElement("button");
-  dlBtn.type = "button"; dlBtn.className = "btn-sm"; dlBtn.textContent = "Download JSON";
-  dlBtn.onclick = () => {
-    const blob = new Blob([pretty], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `research-${(meta.niche || "keywords").toString().toLowerCase().replace(/[^a-z0-9]+/g, "-")}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-  actions.append(copyBtn, dlBtn);
+  actions.appendChild(mkBtn("Copy JSON", (e) => {
+    navigator.clipboard.writeText(pretty).then(() => { e.target.textContent = "Copied ✓"; setTimeout(() => e.target.textContent = "Copy JSON", 1500); });
+  }));
+  actions.appendChild(mkBtn("Download JSON", () => download(`research-${slug}.json`, pretty, "application/json")));
+  actions.appendChild(mkBtn("Download MD", () => download(`research-${slug}.md`, researchToMarkdown(r), "text/markdown")));
   wrap.appendChild(actions);
 
-  const det = document.createElement("details");
-  det.className = "json-details";
-  const smry = document.createElement("summary");
-  smry.textContent = "Full research object (JSON)";
-  const pre = document.createElement("pre");
-  pre.className = "json-block";
-  pre.textContent = pretty;
-  det.append(smry, pre);
+  // market summary
+  if (sum.top_opportunity || sum.positioning_angle || sum.overall_recommendation) {
+    let h = "";
+    if (sum.top_opportunity) h += `<div class="top">◆ Top opportunity: ${esc(sum.top_opportunity)}</div>`;
+    if (sum.positioning_angle) h += `<div class="angle">${esc(sum.positioning_angle)}</div>`;
+    if (sum.reason) h += `<div class="rec">${esc(sum.reason)}</div>`;
+    if (sum.overall_recommendation) h += `<div class="rec">${esc(sum.overall_recommendation)}</div>`;
+    const facts = [];
+    if (meta.research_method) facts.push(esc(meta.research_method));
+    if (meta.data_source) facts.push(esc(meta.data_source));
+    if (sum.market_score != null) facts.push("market score " + esc(sum.market_score));
+    if (r.confidence_score != null) facts.push("confidence " + esc(r.confidence_score));
+    if (meta.generated_at) facts.push(esc(meta.generated_at));
+    if (facts.length) h += `<div class="facts">${facts.join(" · ")}</div>`;
+    wrap.appendChild(el("div", "research-head", h));
+  }
+
+  if (kops.length) { wrap.appendChild(el("div", "rep-h", "Keyword opportunities")); wrap.appendChild(keywordTable(kops)); }
+
+  if (has(r.secondary_opportunities)) {
+    wrap.appendChild(el("div", "rep-h", "Secondary opportunities"));
+    const g = el("div", "rep-cards");
+    r.secondary_opportunities.forEach(s => g.appendChild(el("div", "rep-card",
+      `<div class="t">${esc(s.keyword || "")}</div><div class="d">${esc(s.why_it_matters || "")}</div>` +
+      (s.best_use_case ? `<div class="u">→ ${esc(s.best_use_case)}</div>` : ""))));
+    wrap.appendChild(g);
+  }
+
+  if (has(r.avoid_keywords)) {
+    wrap.appendChild(el("div", "rep-h", "Keywords to avoid"));
+    const ul = el("ul", "rep-list warn");
+    r.avoid_keywords.forEach(a => ul.appendChild(el("li", null, `<strong>${esc(a.keyword || "")}</strong> — ${esc(a.reason || "")}`)));
+    wrap.appendChild(ul);
+  }
+
+  if (has(r.keyword_clusters)) {
+    wrap.appendChild(el("div", "rep-h", "Keyword clusters"));
+    const g = el("div", "rep-cards");
+    r.keyword_clusters.forEach(c => {
+      let inner = `<div class="t">${esc(c.cluster || c.primary_keyword || "")}</div>`;
+      if (c.primary_keyword) inner += `<div class="d">Primary: <strong>${esc(c.primary_keyword)}</strong></div>`;
+      if (has(c.supporting_keywords)) inner += `<div class="chips-sm">${c.supporting_keywords.map(k => `<span>${esc(k)}</span>`).join("")}</div>`;
+      if (c.intent) inner += `<div class="u">Intent: ${esc(c.intent)}</div>`;
+      if (c.recommended_page) inner += `<div class="u">Page: ${esc(c.recommended_page)}</div>`;
+      g.appendChild(el("div", "rep-card", inner));
+    });
+    wrap.appendChild(g);
+  }
+
+  const cust = [["Problems","customer_problems"],["Desires","customer_desires"],["Objections","customer_objections"]];
+  if (cust.some(([_, k]) => has(r[k]))) {
+    wrap.appendChild(el("div", "rep-h", "Customer insight"));
+    const grid = el("div", "cols3");
+    cust.forEach(([lbl, k]) => {
+      const col = el("div", "col", `<div class="lbl">${lbl}</div>`);
+      const ul = el("ul", "rep-list");
+      (r[k] || []).forEach(x => ul.appendChild(el("li", null, esc(asText(x)))));
+      col.appendChild(ul);
+      grid.appendChild(col);
+    });
+    wrap.appendChild(grid);
+  }
+
+  if (has(r.content_opportunities)) {
+    wrap.appendChild(el("div", "rep-h", "Content opportunities"));
+    const cols = [["Searcher problem","searcher_problem"],["Keyword","target_keyword"],["Stage","funnel_stage"],["Asset","recommended_asset"],["CTA","recommended_cta"]];
+    const tw = el("div", "tbl-wrap");
+    let t = '<table class="kw-table"><thead><tr>' + cols.map(c => `<th>${c[0]}</th>`).join("") + "</tr></thead><tbody>";
+    r.content_opportunities.forEach(c => { t += "<tr>" + cols.map(([_, k]) => `<td>${esc(c[k] ?? "—")}</td>`).join("") + "</tr>"; });
+    t += "</tbody></table>"; tw.innerHTML = t; wrap.appendChild(tw);
+  }
+
+  const listSection = (title, arr) => {
+    if (!has(arr)) return;
+    wrap.appendChild(el("div", "rep-h", title));
+    const ul = el("ul", "rep-list");
+    arr.forEach(x => ul.appendChild(el("li", null, esc(asText(x)))));
+    wrap.appendChild(ul);
+  };
+  listSection("Offer opportunities", r.offer_opportunities);
+  listSection("Competitor gaps", r.competitor_gaps);
+
+  const stratSection = (title, obj, key) => {
+    if (!obj || (!has(obj[key]) && !has(obj.notes))) return;
+    wrap.appendChild(el("div", "rep-h", title));
+    if (has(obj[key])) { const ul = el("ul", "rep-list"); obj[key].forEach(x => ul.appendChild(el("li", null, esc(asText(x))))); wrap.appendChild(ul); }
+    if (has(obj.notes)) wrap.appendChild(el("div", "rep-p", obj.notes.map(n => esc(asText(n))).join("<br>")));
+  };
+  stratSection("PPC strategy", r.ppc_strategy, "campaigns");
+  stratSection("SEO strategy", r.seo_strategy, "clusters");
+
+  if (has(r.next_actions)) {
+    wrap.appendChild(el("div", "rep-h", "Next actions"));
+    const ol = el("ol", "rep-list");
+    r.next_actions.slice().sort((a, b) => (a.priority || 0) - (b.priority || 0))
+      .forEach(a => ol.appendChild(el("li", null, `<strong>${esc(a.task || "")}</strong> — ${esc(a.reason || "")}`)));
+    wrap.appendChild(ol);
+  }
+
+  const det = el("details", "json-details");
+  det.appendChild(el("summary", null, "Raw JSON object"));
+  const pre = el("pre", "json-block"); pre.textContent = pretty;
+  det.appendChild(pre);
   wrap.appendChild(det);
 
   return wrap;
