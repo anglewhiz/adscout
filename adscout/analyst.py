@@ -11,7 +11,10 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
+import re
+
 from .client import SpyFuClient
+from .copywriting import COPY_FRAME
 from .strategy import STRATEGY_FRAME
 from .tools import TOOLS, dispatch
 
@@ -83,6 +86,25 @@ Verdict block as the closing section.
 
 """ + STRATEGY_FRAME
 
+# Verbs and objects that signal the user wants a creative MADE (not researched).
+# When both appear, the ad-copy playbook is added to the system prompt for that
+# run; otherwise it's omitted to keep ordinary analyses lean.
+_CREATE_VERBS = ("creat", "design", "mock up", "mockup", "generate", "make me",
+                 "give me", "come up with", "write", "draft", "produce")
+_CREATE_NOUNS = ("ad ", "ads", "advert", "creative", "concept", "copy",
+                 "headline", "landing page", "banner", "mock-up", "mockup")
+
+
+_EMPTY_FALLBACK = ("The analysis ran but didn't produce a written summary — this "
+                   "can happen on complex requests. Try again, narrow the question, "
+                   "or raise Max steps. The evidence trace below shows what was gathered.")
+
+
+def _wants_creative(question: str) -> bool:
+    q = question.lower()
+    return (any(v in q for v in _CREATE_VERBS)
+            and any(n in q for n in _CREATE_NOUNS))
+
 
 @dataclass
 class ToolCall:
@@ -136,12 +158,18 @@ class Analyst:
         trace: list[ToolCall] = []
         screenshots: list[dict] = []
         creatives: list[dict] = []
+        nudged = False
+
+        # Load the ad-copy playbook only when the question is a creative request.
+        system = SYSTEM_PROMPT
+        if _wants_creative(question):
+            system = SYSTEM_PROMPT + "\n\n" + COPY_FRAME
 
         for step in range(1, self.max_steps + 1):
             resp = self.ai.messages.create(
                 model=self.model,
                 max_tokens=self.max_tokens,
-                system=SYSTEM_PROMPT,
+                system=system,
                 tools=TOOLS,
                 messages=messages,
             )
@@ -151,9 +179,21 @@ class Analyst:
                     getattr(b, "text", "") for b in resp.content
                     if getattr(b, "type", None) == "text"
                 ).strip()
-                return AnalystResult(answer=answer, trace=trace, steps=step,
-                                     screenshots=screenshots,
-                                     creatives=creatives)
+                # The model occasionally ends its turn without writing anything.
+                # Nudge it once to produce the written analysis rather than
+                # returning a blank answer.
+                if not answer and not nudged and resp.content and step < self.max_steps:
+                    nudged = True
+                    messages.append({"role": "assistant", "content": resp.content})
+                    messages.append({"role": "user", "content":
+                        "Now write your final analysis for the user in the required "
+                        "Markdown format (## Answer, ## Evidence, ## Verdict, and the "
+                        "creative sections if asked). Use the tool results already "
+                        "gathered above."})
+                    continue
+                return AnalystResult(
+                    answer=answer or _EMPTY_FALLBACK, trace=trace, steps=step,
+                    screenshots=screenshots, creatives=creatives)
 
             # Record the assistant turn (with its tool_use blocks) verbatim.
             messages.append({"role": "assistant", "content": resp.content})

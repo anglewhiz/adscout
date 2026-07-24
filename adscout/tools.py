@@ -179,15 +179,17 @@ TOOLS: list[dict] = [
     {
         "name": "generate_creative",
         "description": (
-            "GENERATE a new ad creative or landing-page hero mockup as an image, using "
+            "GENERATE the VISUAL for a new ad creative or landing-page hero mockup, using "
             "what you learned about the niche. Use only when the user asks to create / "
-            "design / mock up / 'show me an ad or landing page for MY offer' — this "
-            "MAKES new visuals, it does not research existing ones (use "
-            "search_facebook_ads for competitors' real ads, capture_landing_page to "
-            "screenshot a real page). Write the brief yourself, grounded in the offers, "
-            "angles and hooks you found: describe the scene, subject, mood, composition "
-            "and any on-image text. The image is shown to the user automatically — "
-            "never paste the image URL. Costs credits: at most 2 calls per answer."
+            "design / mock up an ad or landing page for THEIR offer — this MAKES new "
+            "visuals, it does not research existing ones (use search_facebook_ads for "
+            "competitors' real ads, capture_landing_page to screenshot a real page). "
+            "Write the actual ad COPY (headlines, primary text, offer, CTA) in your "
+            "answer's '## Ad concepts' section using the ad-copy rules; here in `brief` "
+            "describe only the IMAGE — scene, subject, mood, composition — and leave "
+            "clean space for a headline (image models render text poorly, so don't rely "
+            "on baked-in text). The image is shown to the user automatically; never paste "
+            "the image URL. Costs credits: at most 2 calls per answer."
         ),
         "input_schema": {
             "type": "object",
