@@ -15,9 +15,12 @@ from __future__ import annotations
 import hmac
 import os
 import re
+from datetime import date
 from types import SimpleNamespace
 
-from .analyst import Analyst
+import json
+
+from .analyst import Analyst, _wants_keyword_research
 from .client import SpyFuClient
 from .config import Settings
 from .endpoints import COUNTRY_CODES
@@ -102,6 +105,9 @@ _FILLER = {
     "big", "niche", "space", "do", "does", "they", "use", "and", "for", "a", "an",
     "of", "to", "with", "market", "someone", "much", "money", "which", "brands",
     "companies", "run", "against",
+    # keyword-research phrasings, so the demo topic reads as the actual niche
+    "find", "keyword", "keywords", "opportunity", "opportunities", "research",
+    "best", "list", "top", "me", "give", "object", "please", "niche's",
 }
 
 
@@ -119,13 +125,22 @@ def _topic_from_question(question: str) -> str:
 class _DemoAnthropic:
     """Scripts a realistic multi-step analysis without any network or API key."""
 
-    def __init__(self, topic: str) -> None:
+    def __init__(self, topic: str, research: bool = False) -> None:
         self.topic = topic
+        self.research = research
         self.calls = 0
         self.messages = self  # Analyst calls self.ai.messages.create(...)
 
     def create(self, **kwargs):
         self.calls += 1
+        if self.research:
+            if self.calls == 1:
+                return self._tool("find_advertisers_for_topic",
+                                  {"topic": self.topic, "limit": 20})
+            if self.calls == 2:
+                return self._tool("research_keywords",
+                                  {"topic": self.topic, "search_type": "Transactions", "limit": 20})
+            return self._final_research()
         if self.calls == 1:
             return self._tool("find_advertisers_for_topic",
                               {"topic": self.topic, "limit": 5})
@@ -186,6 +201,79 @@ class _DemoAnthropic:
         block = SimpleNamespace(type="text", text=text)
         return SimpleNamespace(stop_reason="end_turn", content=[block])
 
+    def _final_research(self):
+        t = self.topic
+        obj = {
+            "research_summary": {
+                "niche": t.title(), "research_method": "Livingston underbelly + intent-based keyword research",
+                "criteria": ["meaningful volume", "relevance (causal/emotional reframe)",
+                             "commercial value (CPC)", "advertiser competition", "search intent",
+                             "local vs informational"],
+                "total_keywords": 5, "data_source": "SpyFu (Google Search)", "generated_at": "",
+            },
+            "market_summary": {
+                "top_opportunity": f"reactive {t} near me",
+                "reason": "Strong local/commercial intent and emotional urgency at a fraction of the head-term competition.",
+                "positioning_angle": f"Calm, controlled results for the specific problem — not another generic \"{t}\" claim.",
+                "overall_recommendation": f"Lead paid search with the underbelly term; build an SEO cluster around the behavioural sub-problems.",
+                "market_score": 74,
+            },
+            "keyword_opportunities": [
+                {"priority": 1, "keyword": f"reactive {t} near me", "monthly_volume": 900, "cpc": None,
+                 "paid_competitors": 40, "difficulty": 19, "search_intent": "high local/commercial",
+                 "funnel_stage": "BOFU", "opportunity_score": 88, "recommendation": "Best soft-underbelly niche", "notes": "Reframes the head term around a specific cause."},
+                {"priority": 2, "keyword": f"{t} for anxiety", "monthly_volume": 630, "cpc": None,
+                 "paid_competitors": 38, "difficulty": 26, "search_intent": "problem-aware",
+                 "funnel_stage": "MOFU", "opportunity_score": 79, "recommendation": "Excellent content/consult niche", "notes": "Emotionally charged, non-local."},
+                {"priority": 3, "keyword": f"aggressive {t} near me", "monthly_volume": 3100, "cpc": None,
+                 "paid_competitors": 81, "difficulty": 30, "search_intent": "urgent commercial",
+                 "funnel_stage": "BOFU", "opportunity_score": 71, "recommendation": "High lead value, more competitive", "notes": "Only if qualified to handle it."},
+                {"priority": 4, "keyword": f"best {t}", "monthly_volume": 74000, "cpc": 1.42,
+                 "paid_competitors": 18, "difficulty": 71, "search_intent": "broad commercial",
+                 "funnel_stage": "MOFU", "opportunity_score": 41, "recommendation": "Too broad to lead with", "notes": "Mixed intent, expensive to test."},
+                {"priority": 5, "keyword": f"{t} tips", "monthly_volume": 12100, "cpc": None,
+                 "paid_competitors": 9, "difficulty": 22, "search_intent": "informational",
+                 "funnel_stage": "TOFU", "opportunity_score": 55, "recommendation": "Content cluster / lead magnet", "notes": "Feeds the warm audience."},
+            ],
+            "secondary_opportunities": [
+                {"keyword": f"{t} for anxiety", "why_it_matters": "Strong emotional pain point.",
+                 "best_use_case": "Assessment page + consultation or a mini-course."},
+            ],
+            "avoid_keywords": [
+                {"keyword": t, "reason": "Too broad — many intents, poor message match."},
+                {"keyword": f"{t} near me", "reason": "High volume but crowded and mixed intent."},
+            ],
+            "keyword_clusters": [
+                {"cluster": "Behavioural problems", "primary_keyword": f"reactive {t}",
+                 "supporting_keywords": [f"{t} for anxiety", f"aggressive {t}"], "intent": "problem-aware",
+                 "recommended_page": "One dedicated page per problem"},
+            ],
+            "customer_problems": ["Stressful, unpredictable outcomes in public",
+                                  "Tried generic advice with no lasting result", "Worried it's too late to fix"],
+            "customer_desires": ["Calm, predictable results", "A specialist who gets THIS problem", "Fast reassurance"],
+            "customer_objections": ["Will this actually work for my case?", "Is it worth the cost?", "How long until results?"],
+            "content_opportunities": [
+                {"searcher_problem": "The specific behaviour flares in public.", "target_keyword": f"reactive {t} near me",
+                 "funnel_stage": "BOFU", "recommended_asset": "Local service landing page", "recommended_cta": "Book an assessment"},
+            ],
+            "offer_opportunities": ["Risk-reversal guarantee tied to the specific outcome",
+                                    "Free assessment / quiz as the reciprocity entry offer"],
+            "competitor_gaps": ["Everyone claims 'professional/effective' — nobody owns the specific behavioural reframe"],
+            "ppc_strategy": {"campaigns": [f"reactive {t}", f"{t} for anxiety", f"aggressive {t} (if qualified)"],
+                             "notes": ["Separate campaign per distinct audience/offer", "Max Conversions, accept higher CPCs"]},
+            "seo_strategy": {"clusters": ["reactivity", "anxiety", "aggression", "recall", "puppy biting"],
+                             "notes": ["A page per behavioural problem, not one generic services page"]},
+            "next_actions": [
+                {"priority": 1, "task": f"Build a 'reactive {t}' local landing page", "reason": "Highest-intent underbelly term."},
+                {"priority": 2, "task": "Launch a tightly-themed paid campaign on the top 3 terms", "reason": "Prove profit at low spend first."},
+            ],
+            "confidence_score": 0.6,
+        }
+        text = ("Keyword research object for the **" + t + "** niche "
+                "(demo — sample data):\n\n```json\n" + json.dumps(obj, indent=2) + "\n```")
+        return SimpleNamespace(stop_reason="end_turn",
+                               content=[SimpleNamespace(type="text", text=text)])
+
 
 # --------------------------------------------------------------------------
 # Public entry points used by the HTTP layers.
@@ -201,7 +289,8 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
         settings.default_country = country
 
     if mode == "demo":
-        anthropic_client = _DemoAnthropic(_topic_from_question(question))
+        anthropic_client = _DemoAnthropic(_topic_from_question(question),
+                                          research=_wants_keyword_research(question))
         data_mock = True
     elif mode == "mock":
         if not _real(settings.anthropic_api_key):
@@ -244,12 +333,18 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
         )
         result = analyst.ask(question)
 
+    research = result.research
+    if isinstance(research, dict) and isinstance(research.get("research_summary"), dict):
+        # Stamp the real date server-side rather than trusting the model.
+        research["research_summary"]["generated_at"] = date.today().isoformat()
+
     return {
         "answer": result.answer,
         "steps": result.steps,
         "mode": mode,
         "screenshots": result.screenshots,
         "creatives": result.creatives,
+        "research": research,
         "trace": [
             {"name": c.name, "input": c.input, "result_summary": c.result_summary}
             for c in result.trace

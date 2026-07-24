@@ -15,6 +15,7 @@ import re
 
 from .client import SpyFuClient
 from .copywriting import COPY_FRAME
+from .research import RESEARCH_INSTRUCTIONS, extract_research
 from .strategy import STRATEGY_FRAME
 from .tools import TOOLS, dispatch
 
@@ -106,6 +107,18 @@ def _wants_creative(question: str) -> bool:
             and any(n in q for n in _CREATE_NOUNS))
 
 
+def _wants_keyword_research(question: str) -> bool:
+    """Detect a request for a structured keyword/niche research object."""
+    q = question.lower()
+    if any(t in q for t in ("research object", "as json", "json object")):
+        return True
+    if "keyword" in q and any(w in q for w in (
+            "research", "find", "opportunit", "niche", "underbelly", "cluster",
+            "best ", "list of")):
+        return True
+    return False
+
+
 @dataclass
 class ToolCall:
     name: str
@@ -122,6 +135,8 @@ class AnalystResult:
     screenshots: list[dict] = field(default_factory=list)
     # Images generated during the run (ad concepts / hero mockups).
     creatives: list[dict] = field(default_factory=list)
+    # Structured keyword-research object (keyword-research mode only).
+    research: dict | None = None
 
 
 class Analyst:
@@ -160,15 +175,23 @@ class Analyst:
         creatives: list[dict] = []
         nudged = False
 
-        # Load the ad-copy playbook only when the question is a creative request.
-        system = SYSTEM_PROMPT
-        if _wants_creative(question):
+        # Pick the output mode from the question. Keyword-research swaps the
+        # verdict format for a structured JSON object; creative adds the copy
+        # playbook. Both are conditional so ordinary queries stay lean.
+        research_mode = _wants_keyword_research(question)
+        max_tokens = self.max_tokens
+        if research_mode:
+            system = SYSTEM_PROMPT + "\n\n" + RESEARCH_INSTRUCTIONS
+            max_tokens = max(self.max_tokens, 4096)  # the object is large
+        elif _wants_creative(question):
             system = SYSTEM_PROMPT + "\n\n" + COPY_FRAME
+        else:
+            system = SYSTEM_PROMPT
 
         for step in range(1, self.max_steps + 1):
             resp = self.ai.messages.create(
                 model=self.model,
-                max_tokens=self.max_tokens,
+                max_tokens=max_tokens,
                 system=system,
                 tools=TOOLS,
                 messages=messages,
@@ -191,9 +214,10 @@ class Analyst:
                         "creative sections if asked). Use the tool results already "
                         "gathered above."})
                     continue
+                research = extract_research(answer) if research_mode else None
                 return AnalystResult(
                     answer=answer or _EMPTY_FALLBACK, trace=trace, steps=step,
-                    screenshots=screenshots, creatives=creatives)
+                    screenshots=screenshots, creatives=creatives, research=research)
 
             # Record the assistant turn (with its tool_use blocks) verbatim.
             messages.append({"role": "assistant", "content": resp.content})
