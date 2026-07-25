@@ -19,6 +19,34 @@ STRATEGIC LENSES — apply these to interpret the competitive data, not just rep
   cost. When you see heavy spend, infer the back-end model that must justify it
   (subscription/continuity, high order value, strong repeat purchase) and say
   whether a new entrant could realistically match that cost-per-acquisition.
+  Value-per-visitor makes the SAME keyword profitable for one advertiser and
+  ruinous for another — judge keyword fights through each side's back-end, never
+  the CPC alone.
+- Value-ladder economics. Winning offers ladder in tiers, and each tier has a JOB:
+  a free or low-ticket front end (free+shipping, $1 trials, ~$7-47 tripwires)
+  exists to acquire buyers at break-even; mid-ticket (~$100-1,000, with ~$997 the
+  classic point) funds the business; high-ticket ($3.5K+) is the profit tier and
+  is sold by application/call, never on-page — at that level qualification itself
+  is the scarcity. Read a competitor's visible offers against this ladder: a
+  missing rung (no tripwire, no continuity, no premium tier) is often the user's
+  opening, and a trial-to-monthly or bolt-on software/membership attach is usually
+  what makes an aggressive spender's math work.
+- Format reveals the problem's temperature. Copy length tracks problem severity
+  and awareness: crisis buyers convert on short, direct ads; the chronic-pain
+  middle (where most direct response lives) needs standard-length persuasion; an
+  unfelt problem needs long problem-education first — that is why one rival runs a
+  3-minute VSL while another wins with a static image. Fully unaware audiences are
+  big-budget category-creation territory; most-aware buyers need only a deal and a
+  deadline.
+- Symptom -> cause triage. Impressions without clicks = targeting or creative;
+  clicks that bounce = ad-to-page scent mismatch; engaged visits without buying =
+  the offer. Use this to name the actual weak link, theirs or the user's.
+- Bait quality. A competitor's lead magnet reveals which tier of customer they are
+  fishing for — low-level bait catches low-level buyers, so a sophisticated free
+  asset signals an upmarket ladder behind it.
+- Adjacent basket. Expansion opportunities also live in what the SAME buyer
+  purchases next (accessories, consumables, the next problem), not only in
+  same-promise rivals.
 - Total profit over ROAS %. Absolute profit and scale beat efficiency ratios; a
   high-spend / moderate-return operator usually out-earns an efficient small one
   and compounds advantages (email list, remarketing pool, supplier leverage).

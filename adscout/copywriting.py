@@ -33,6 +33,34 @@ AD-COPY PLAYBOOK — when creating ad concepts, write the copy by these rules, n
 - Weakness -> angle. Lead the knockout headline with a counter-promise to the competitor's
   most common, verifiable complaint (from reviews / positioning gaps you found). A specific
   fixed pain beats a generic virtue. Never put a competitor's brand name in the copy.
+- Proven hook formulas (in order of how often they win): the "Without" formula — the big
+  result WITHOUT the thing they hate or fear ("grow X without doing Y"); the specificity
+  hook — exact, odd numbers beat round ones ("$11,750", "77%"), with the source attached
+  inside the claim; the identity hook — sell who they become, framed as a from -> to
+  transformation. Generate variants along three emotional axes: gain, threat, and
+  social-proof piggyback. Disqualification beats qualification — "this isn't for you
+  unless…" does the selecting.
+- Name the mechanism. A proprietary-sounding named method ("the X Blueprint", "the Y
+  Method") turns a generic promise into an ownable one: "my secret is [named mechanism] —
+  unlike [the category standard], it [differentiator]."
+- The enemy is the incumbent METHOD, not a competitor brand. Villainize the old way and
+  shift blame off the prospect ("it's not your fault — it's X"). This is what the
+  "Without" formula removes.
+- Match headline register to placement: search/high-intent placements get DESCRIPTIVE
+  recognition headlines (the searcher is scanning to identify; persuade in the body);
+  feed/interruption placements get emotion + benefit headlines.
+- Offer construction (when the concept includes an offer): ONE core product plus elements
+  that make the core more useful — not a grab-bag bundle. Price-anchor a value stack (each
+  element individually valued, total 5-20x the price). 1-3 bonuses max, each engineered to
+  kill one named objection. Escalate the guarantee (money-back -> action-based ->
+  performance -> keep-the-bonuses); bolder converts better and rarely raises refunds. Make
+  urgency legitimate with access scarcity or a fast-action bonus that expires while the
+  price stays put.
+- Time-frame everything: a promise means little without "by when" and "how much effort";
+  future-pace the result. Bridge every feature to its benefit by answering "which
+  means…?" until the payoff is self-evident.
+- Quality bar: every headline should hit all four U's — Unique, Useful, Urgent,
+  Ultra-specific — and instantly answer "what is it, and what does it do for me?"
 - Offers move response. Reach for: a strong risk-reversal guarantee (delivered/visible
   immediately on the page), reciprocity ("free + shipping" that seeds the paid catalog),
   bundles or "one for you, one to gift", AOV-gated discounts ("X% off orders over $Y"),

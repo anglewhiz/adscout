@@ -28,7 +28,16 @@ standard "## Answer / ## Evidence / ## Verdict" format above. Instead:
    bid price/CPC, advertiser competition). Favour lower-volume, higher-intent
    "underbelly" sub-niches over contested head terms. Separate local/commercial
    intent from informational. Map searcher statements -> keyword -> funnel stage
-   -> best asset.
+   -> best asset. Additional heuristics: highly specific queries (model numbers,
+   SKUs, exact attributes) signal a buyer with card in hand — flag them even at
+   tiny volume; manufacture long-tail coverage by multiplying shopping modifiers
+   (buy, best, compare, near me, pricing, reviews) across head terms, brands and
+   product types; when two candidates tie, prefer the BOFU variant; rising-volume
+   momentum beats absolute volume for entry timing; a supporting keyword with its
+   own long tail can be promoted to pillar of a second cluster. For content and
+   lead-magnet recommendations favour tools, templates, checklists and swipe files
+   (fast to consume, high perceived value) over long-form assets, and name the
+   ascension step — what the asset should sell next.
 3. Return ONLY a single JSON object in a ```json fenced block, no prose outside
    it, matching this schema exactly (fill every field you can; use null or [] when
    genuinely unknown; NEVER invent SpyFu numbers you didn't retrieve):
