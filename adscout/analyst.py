@@ -164,7 +164,7 @@ class Analyst:
         model: str = "claude-sonnet-5",
         default_country: str = "US",
         max_steps: int = 8,
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
     ) -> None:
         self.spyfu = spyfu
         self.meta = meta

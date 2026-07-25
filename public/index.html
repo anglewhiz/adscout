@@ -978,18 +978,38 @@ function makeLoading(mode) {
 }
 
 // --- conversation state --------------------------------------------------
-let convMode = false;
 let history = [];  // [{role:"user"|"assistant", content}]
+const DEFAULT_PLACEHOLDER = "e.g. What landing page is Factor sending their Facebook ads to? Show me it.";
+
+function goLabel() {
+  return ($("convToggle").checked && history.length) ? "Ask follow-up" : "Analyze";
+}
+
+// Keep the button label, placeholder and helper in sync with the toggle + thread.
+function updateComposer() {
+  const on = $("convToggle").checked;
+  $("newConv").classList.toggle("hidden", !on);
+  $("convHint").textContent = on
+    ? "Follow-ups keep context — each reply re-reads the thread, so it costs a little more."
+    : "Keep context across follow-up questions.";
+  $("q").placeholder = (on && history.length)
+    ? "Ask a follow-up — the thread above is remembered…"
+    : DEFAULT_PLACEHOLDER;
+  $("go").textContent = goLabel();
+}
 
 function resetConversation() {
   history = [];
   $("out").innerHTML = "";
+  updateComposer();
 }
 
 async function analyze() {
   const question = $("q").value.trim();
   if (!question) { $("q").focus(); return; }
 
+  // Read the toggle live so it can never desync from a mirrored variable.
+  const convMode = $("convToggle").checked;
   const mode = $("mode").value;
   const password = $("pw").value;
   if (mode !== "demo" && CONFIG.auth_required && !password) {
@@ -1014,7 +1034,6 @@ async function analyze() {
 
   const btn = $("go");
   btn.disabled = true;
-  const original = btn.textContent;
   btn.textContent = mode === "demo" ? "Running…" : "Analysing…";
 
   const finish = (node) => {
@@ -1060,7 +1079,7 @@ async function analyze() {
     finish(errorCard("Network error: " + e.message));
   } finally {
     btn.disabled = false;
-    btn.textContent = original;
+    updateComposer();
   }
 }
 
@@ -1069,17 +1088,11 @@ $("mode").addEventListener("change", () => { updateModeHint(); updatePwVisibilit
 $("q").addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") analyze();
 });
-$("convToggle").addEventListener("change", (e) => {
-  convMode = e.target.checked;
-  $("newConv").classList.toggle("hidden", !convMode);
-  $("convHint").textContent = convMode
-    ? "Follow-ups keep context — each reply re-reads the thread, so it costs a little more."
-    : "Keep context across follow-up questions.";
-  resetConversation();
-});
+$("convToggle").addEventListener("change", resetConversation);
 $("newConv").onclick = () => { resetConversation(); $("q").focus(); };
 renderChips();
 loadStatus();
+updateComposer();
 </script>
 </body>
 </html>
