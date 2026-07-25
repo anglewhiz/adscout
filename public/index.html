@@ -979,8 +979,19 @@ async function analyze() {
         password,
       }),
     });
-    const data = await r.json();
     stopLoading();
+    const raw = await r.text();
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (_) {
+      // Non-JSON response — almost always a Vercel timeout/error page.
+      const timedOut = r.status === 504 || /timed out|timeout|FUNCTION_INVOCATION/i.test(raw);
+      renderError(timedOut
+        ? "That request took too long and timed out (the server caps a single analysis at 5 minutes). It usually happens when one prompt combines heavy steps — full three-channel research + a screenshot + image generation. Run one focused thing at a time (see the example chips), or lower Max steps."
+        : `Server error (${r.status}). ${raw.slice(0, 160)}`);
+      return;
+    }
     if (!r.ok || data.error) {
       if (data.auth_required) { $("pwWrap").classList.remove("hidden"); $("pw").focus(); }
       renderError(data.error || `Request failed (${r.status}).`);

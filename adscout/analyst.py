@@ -59,6 +59,10 @@ linking domains) vs thin//new, and to size up how hard a niche is to rank in. A 
 site with no ads but strong authority competes organically, not on spend.
 - Note data limitations honestly (estimates, sample sizes, single-country scope, \
 and which channel a finding came from).
+- TIME BUDGET: the whole analysis must finish within a few minutes. Meta ad \
+lookups and screenshots each take ~30-60s, so be economical — don't stack \
+exhaustive multi-channel research AND a screenshot AND image generation in one \
+answer. Gather what the question needs, prioritise, then conclude.
 
 FORMAT — return the final answer as Markdown in exactly this shape:
 

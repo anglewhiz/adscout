@@ -145,7 +145,9 @@ TOOLS: list[dict] = [
             "use this whenever Google shows little/no paid activity but the offer likely "
             "runs on Meta — typical for $1-trial or continuity funnels, info-products, "
             "coaching, and DTC brands. Returns advertisers, ad copy, CTAs, destination "
-            "links, and how long each ad has been running."
+            "links, and how long each ad has been running. SLOW (~30-60s per call) — "
+            "use at most ~2 Meta lookups total per answer, and fewer if you will also "
+            "capture a screenshot or generate a creative."
         ),
         "input_schema": {
             "type": "object",
@@ -163,7 +165,8 @@ TOOLS: list[dict] = [
         "description": (
             "List the Facebook/Instagram (Meta) ads a SPECIFIC advertiser is running, "
             "by their Facebook Page URL or brand/page name. Use to inspect one brand's "
-            "Meta ad strategy and creatives (headlines, body copy, offers, CTAs)."
+            "Meta ad strategy and creatives (headlines, body copy, offers, CTAs). "
+            "SLOW (~30-60s per call) — count it toward the ~2 Meta lookups per answer."
         ),
         "input_schema": {
             "type": "object",
