@@ -106,7 +106,16 @@ class MetaAdLibraryClient:
                 items = items.get("items", []) if isinstance(items, dict) else []
             return {"results": _summarize_ads(items, limit)}
         if resp.status_code in (401, 403):
-            raise MetaError("Apify rejected the token (401/403). Check APIFY_TOKEN.")
+            # Surface Apify's own reason — a 403 with a VALID token usually means
+            # the monthly usage limit is exhausted, not a bad key.
+            try:
+                detail = ((resp.json() or {}).get("error") or {}).get("message", "")
+            except ValueError:
+                detail = resp.text[:150]
+            raise MetaError(
+                f"Apify {resp.status_code}: {detail or 'token rejected'} — if the "
+                "token is valid, the monthly usage limit is likely exhausted "
+                "(top up / upgrade at apify.com, or wait for the monthly reset).")
         raise MetaError(f"Apify {resp.status_code}: {resp.text[:200]}")
 
     def close(self) -> None:
