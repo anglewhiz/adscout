@@ -17,6 +17,11 @@ AD-COPY PLAYBOOK — when creating ad concepts, write the copy by these rules, n
   or an exclusive service. Generic benefits (fast / safe / trusted / high quality) are the
   price of entry, not a reason to click. If AI could write it for any competitor, it's too
   generic — inject what only this advertiser can say.
+- Pick the lane, enter the proven conversation. Decide which market the offer really sells
+  into — health, wealth, or relationships — and write to that lane's language and desires
+  (the same product can be sold in different lanes). Enter the crowded, proven market with a
+  UNIQUE hook rather than leading with "new/never-seen" — buyers convert on demand that
+  already exists.
 - Match the awareness stage of the intent:
   * Problem-aware -> mirror the problem in their words ("Struggling to <problem>?").
   * Solution-aware -> name the solution and attach a specific benefit.

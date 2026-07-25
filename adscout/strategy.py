@@ -1,9 +1,9 @@
 """Distilled competitive-strategy lenses for the analyst.
 
-A principle-level synthesis of paid-search / media-buying strategy — written in
-our own words, not verbatim source material — focused narrowly on how to
-INTERPRET the competitive data the tools return, so answers carry an expert
-strategic read instead of only reporting numbers.
+A principle-level synthesis of paid-search / media-buying and positioning /
+funnel-hacking strategy — written in our own words, not verbatim source material
+— focused narrowly on how to INTERPRET the competitive data the tools return, so
+answers carry an expert strategic read instead of only reporting numbers.
 
 Kept compact on purpose: it rides in the system prompt on every call, so it
 covers only the lenses that change how competitive data is read, not the full
@@ -39,6 +39,25 @@ STRATEGIC LENSES — apply these to interpret the competitive data, not just rep
 - Founder / brand moat. Personal-brand and founder-story operators tend to sustain
   higher returns and outspend equivalents; note when a competitor has this edge,
   or when it is an opening the user could build.
+- Which market are they really in? Every offer ultimately sells into health,
+  wealth, or relationships — and the sales MESSAGE, not the product, picks the
+  lane (razors sold as confidence/relationships; a camera sold as "go pro"/wealth
+  or "capture the moment"/relationships). Read which lane incumbents actually sell
+  in; positioning sits upstream of copy, offer, and traffic. A lane the category
+  under-uses can be the opening.
+- Same promise, not same product. "No direct competitor" is rarely true — find
+  whoever sells the same RESULT on the same pain, even with a different product,
+  and read them. That same-promise set is where the real hook and honest
+  differentiation come from.
+- Model the mechanism, not the surface. Read a rival's ads and landing pages for
+  the hook, offer structure, guarantee, and funnel sequence — what makes it work —
+  not the colours/layout. The live funnel is ground truth; it reveals what actually
+  sells better than any stated claim or self-description.
+- Enter the proven market with a hook; don't invent an empty category. The winning
+  move is to enter a crowded, proven market with a unique angle, convert on demand
+  that already exists, then own the adjacent offshoot — not to launch a brand-new
+  category nobody searches for yet. A positioning that "leads with new/unheard-of"
+  is usually weaker than one that enters the proven conversation differently.
 
 When the question is strategic (how are they winning, where is my opening, should
 I enter, how do I compete) — or when a strategic implication sharpens a factual
