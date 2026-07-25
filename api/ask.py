@@ -38,7 +38,8 @@ class handler(BaseHTTPRequestHandler):
         try:
             self._json(run_analysis(
                 args["question"], mode=args["mode"], country=args["country"],
-                max_steps=args["max_steps"], password=args["password"]))
+                max_steps=args["max_steps"], password=args["password"],
+                history=args.get("history")))
         except AuthError as exc:
             self._json({"error": str(exc), "auth_required": True}, 401)
         except Exception as exc:  # surface a readable message to the UI

@@ -110,6 +110,27 @@
   .hidden { display: none !important; }
 
   /* ---------- composer footer ---------- */
+  /* conversation toggle */
+  .conv-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+            font-size: 13px; color: var(--ink-muted); -webkit-user-select: none; user-select: none; }
+  .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .switch .track { width: 34px; height: 19px; border-radius: 999px; background: var(--surface-3);
+                   border: 1px solid var(--hairline); position: relative; transition: background .15s, border-color .15s; flex: none; }
+  .switch .knob { position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%;
+                  background: var(--ink-subtle); transition: transform .15s, background .15s; }
+  .switch input:checked + .track { background: var(--primary); border-color: var(--primary); }
+  .switch input:checked + .track .knob { transform: translateX(15px); background: #fff; }
+  .switch input:focus-visible + .track { box-shadow: 0 0 0 3px rgba(94,106,210,.3); }
+  .conv-hint { font-size: 12px; color: var(--ink-faint); }
+  #newConv { margin-left: auto; }
+
+  /* conversation thread */
+  .turn-q { display: flex; justify-content: flex-end; margin: 22px 0 10px; }
+  .turn-q .bubble { background: var(--primary); color: #fff; border-radius: 12px 12px 4px 12px;
+                    padding: 10px 14px; font-size: 14px; max-width: 82%; line-height: 1.5; }
+  #out .card + .turn-q { margin-top: 26px; }
+
   .composer-foot {
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
     margin-top: 20px; padding-top: 17px; border-top: 1px solid var(--hairline);
@@ -328,6 +349,12 @@
     <div id="pwWrap" class="pw-wrap hidden">
       <label for="pw">Access password <span class="pw-note">— required for Mock &amp; Live</span></label>
       <input id="pw" type="password" placeholder="Enter the shared access password" autocomplete="current-password" />
+    </div>
+
+    <div class="conv-row">
+      <label class="switch"><input type="checkbox" id="convToggle" /><span class="track"><span class="knob"></span></span>Conversation mode</label>
+      <span class="conv-hint" id="convHint">Keep context across follow-up questions.</span>
+      <button class="btn-sm hidden" id="newConv" type="button">New conversation</button>
     </div>
 
     <div class="composer-foot">
@@ -803,9 +830,7 @@ function renderResearch(r) {
   return wrap;
 }
 
-function renderResult(data) {
-  const out = $("out");
-  out.innerHTML = "";
+function buildResultCard(data) {
   const card = document.createElement("div");
   card.className = "card";
 
@@ -916,37 +941,50 @@ function renderResult(data) {
   meta.className = "meta";
   meta.textContent = `${data.steps} model step${data.steps === 1 ? "" : "s"} · mode: ${data.mode}`;
   card.appendChild(meta);
-  out.appendChild(card);
+  return card;
+}
+
+function errorCard(msg) {
+  const card = el("div", "card");
+  card.appendChild(el("div", "banner err", null)).textContent = msg;
+  return card;
 }
 
 function renderError(msg) {
   const out = $("out");
   out.innerHTML = "";
-  const card = document.createElement("div");
-  card.className = "card";
-  const b = document.createElement("div");
-  b.className = "banner err";
-  b.textContent = msg;
-  card.appendChild(b);
-  out.appendChild(card);
+  out.appendChild(errorCard(msg));
 }
 
-let timer = null;
-function startLoading(mode) {
+function userBubble(text) {
+  const wrap = el("div", "turn-q");
+  const b = el("div", "bubble");
+  b.textContent = text;
+  wrap.appendChild(b);
+  return wrap;
+}
+
+function makeLoading(mode) {
+  const card = el("div", "card");
   const label = mode === "demo"
     ? "Running the scripted analysis…"
-    : "Claude is choosing tools and analysing — screenshots can add ~1 min…";
-  $("out").innerHTML =
-    `<div class="card"><div class="loading"><span class="spinner"></span>`
-    + `<span>${label}</span><span class="elapsed" id="elapsed">0s</span></div></div>`;
+    : "Claude is choosing tools and analysing — screenshots/creative can add ~1 min…";
+  card.innerHTML = `<div class="loading"><span class="spinner"></span><span>${label}</span><span class="elapsed">0s</span></div>`;
   const t0 = Date.now();
-  clearInterval(timer);
-  timer = setInterval(() => {
-    const el = $("elapsed");
-    if (el) el.textContent = Math.round((Date.now() - t0) / 1000) + "s";
-  }, 1000);
+  const span = card.querySelector(".elapsed");
+  const iv = setInterval(() => { span.textContent = Math.round((Date.now() - t0) / 1000) + "s"; }, 1000);
+  card.stop = () => clearInterval(iv);
+  return card;
 }
-function stopLoading() { clearInterval(timer); timer = null; }
+
+// --- conversation state --------------------------------------------------
+let convMode = false;
+let history = [];  // [{role:"user"|"assistant", content}]
+
+function resetConversation() {
+  history = [];
+  $("out").innerHTML = "";
+}
 
 async function analyze() {
   const question = $("q").value.trim();
@@ -957,16 +995,33 @@ async function analyze() {
   if (mode !== "demo" && CONFIG.auth_required && !password) {
     $("pwWrap").classList.remove("hidden");
     $("pw").focus();
-    renderError("This mode requires the access password.");
+    (convMode ? $("out").appendChild(errorCard("This mode requires the access password.")) : renderError("This mode requires the access password."));
     return;
   }
   if (password) sessionStorage.setItem("adscout_pw", password);
+
+  const out = $("out");
+  const loading = makeLoading(mode);
+  if (convMode) {
+    out.appendChild(userBubble(question));
+    out.appendChild(loading);
+    $("q").value = "";
+    loading.scrollIntoView({ behavior: "smooth", block: "center" });
+  } else {
+    out.innerHTML = "";
+    out.appendChild(loading);
+  }
 
   const btn = $("go");
   btn.disabled = true;
   const original = btn.textContent;
   btn.textContent = mode === "demo" ? "Running…" : "Analysing…";
-  startLoading(mode);
+
+  const finish = (node) => {
+    loading.stop();
+    if (convMode) { loading.replaceWith(node); node.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    else { out.innerHTML = ""; out.appendChild(node); }
+  };
 
   try {
     const r = await fetch("/api/ask", {
@@ -977,30 +1032,32 @@ async function analyze() {
         country: $("country").value,
         max_steps: parseInt($("steps").value, 10) || 8,
         password,
+        history: convMode ? history.slice(-12) : undefined,
       }),
     });
-    stopLoading();
     const raw = await r.text();
     let data;
     try {
       data = JSON.parse(raw);
     } catch (_) {
-      // Non-JSON response — almost always a Vercel timeout/error page.
       const timedOut = r.status === 504 || /timed out|timeout|FUNCTION_INVOCATION/i.test(raw);
-      renderError(timedOut
-        ? "That request took too long and timed out (the server caps a single analysis at 5 minutes). It usually happens when one prompt combines heavy steps — full three-channel research + a screenshot + image generation. Run one focused thing at a time (see the example chips), or lower Max steps."
-        : `Server error (${r.status}). ${raw.slice(0, 160)}`);
+      finish(errorCard(timedOut
+        ? "That request took too long and timed out (the server caps a single analysis at 5 minutes). It usually happens when one prompt combines heavy steps — full three-channel research + a screenshot + image generation. Run one focused thing at a time, or lower Max steps."
+        : `Server error (${r.status}). ${raw.slice(0, 160)}`));
       return;
     }
     if (!r.ok || data.error) {
       if (data.auth_required) { $("pwWrap").classList.remove("hidden"); $("pw").focus(); }
-      renderError(data.error || `Request failed (${r.status}).`);
+      finish(errorCard(data.error || `Request failed (${r.status}).`));
     } else {
-      renderResult(data);
+      finish(buildResultCard(data));
+      if (convMode && data.answer) {
+        history.push({ role: "user", content: question });
+        history.push({ role: "assistant", content: String(data.answer).slice(0, 6000) });
+      }
     }
   } catch (e) {
-    stopLoading();
-    renderError("Network error: " + e.message);
+    finish(errorCard("Network error: " + e.message));
   } finally {
     btn.disabled = false;
     btn.textContent = original;
@@ -1012,6 +1069,15 @@ $("mode").addEventListener("change", () => { updateModeHint(); updatePwVisibilit
 $("q").addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") analyze();
 });
+$("convToggle").addEventListener("change", (e) => {
+  convMode = e.target.checked;
+  $("newConv").classList.toggle("hidden", !convMode);
+  $("convHint").textContent = convMode
+    ? "Follow-ups keep context — each reply re-reads the thread, so it costs a little more."
+    : "Keep context across follow-up questions.";
+  resetConversation();
+});
+$("newConv").onclick = () => { resetConversation(); $("q").focus(); };
 renderChips();
 loadStatus();
 </script>

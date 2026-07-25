@@ -280,7 +280,7 @@ class _DemoAnthropic:
 # --------------------------------------------------------------------------
 
 def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
-                 password: str = "") -> dict:
+                 password: str = "", history: list | None = None) -> dict:
     """Run one analysis and return a JSON-serializable result dict."""
     _check_access(mode, password)
 
@@ -331,7 +331,7 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
             default_country=settings.default_country,
             max_steps=max_steps,
         )
-        result = analyst.ask(question)
+        result = analyst.ask(question, history=history)
 
     research = result.research
     if isinstance(research, dict) and isinstance(research.get("research_summary"), dict):
@@ -450,5 +450,19 @@ def parse_ask_payload(payload: dict) -> dict:
     except (TypeError, ValueError):
         max_steps = 8
     password = str(payload.get("password") or "")
+
+    # Conversation history (conversation mode): keep the last few well-formed
+    # turns, bound each turn's size, so follow-ups carry context without blowing
+    # up tokens or the timeout.
+    history = []
+    raw_history = payload.get("history")
+    if isinstance(raw_history, list):
+        for m in raw_history[-12:]:
+            if not isinstance(m, dict):
+                continue
+            role, content = m.get("role"), m.get("content")
+            if role in ("user", "assistant") and isinstance(content, str) and content.strip():
+                history.append({"role": role, "content": content[:6000]})
+
     return {"question": question, "mode": mode, "country": country,
-            "max_steps": max_steps, "password": password}
+            "max_steps": max_steps, "password": password, "history": history}

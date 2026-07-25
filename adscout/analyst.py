@@ -172,8 +172,18 @@ class Analyst:
             anthropic_client = anthropic.Anthropic()
         self.ai = anthropic_client
 
-    def ask(self, question: str) -> AnalystResult:
-        messages = [{"role": "user", "content": question}]
+    def ask(self, question: str, history: list | None = None) -> AnalystResult:
+        # Seed with prior conversation turns (conversation mode). Normalise so
+        # the sequence is valid for the API: starts with a user turn and never
+        # has two consecutive user turns before the new question.
+        messages = [m for m in (history or [])
+                    if isinstance(m, dict) and m.get("role") in ("user", "assistant")
+                    and isinstance(m.get("content"), str) and m["content"].strip()]
+        while messages and messages[0]["role"] != "user":
+            messages.pop(0)
+        if messages and messages[-1]["role"] == "user":
+            messages.pop()
+        messages.append({"role": "user", "content": question})
         trace: list[ToolCall] = []
         screenshots: list[dict] = []
         creatives: list[dict] = []
