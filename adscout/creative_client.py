@@ -44,11 +44,14 @@ class CreativeError(RuntimeError):
 
 
 class CreativeClient:
+    MAX_GENERATIONS = 3  # per analysis (fal is fast, but bound cost)
+
     def __init__(self, settings, *, mock: bool = False, timeout: float = 90.0) -> None:
         self.settings = settings
         self.mock = mock
         self.key = getattr(settings, "fal_key", None)
         self.model = os.getenv("FAL_MODEL", DEFAULT_MODEL)
+        self._generations = 0
         self._http = None if mock else httpx.Client(timeout=timeout)
 
     def generate(self, brief: str, *, fmt: str = DEFAULT_FORMAT, count: int = 1) -> dict:
@@ -58,6 +61,11 @@ class CreativeClient:
 
         if self.mock:
             return _mock_generate(brief, fmt, count)
+
+        self._generations += 1
+        if self._generations > self.MAX_GENERATIONS:
+            raise CreativeError(
+                f"Creative-generation budget reached ({self.MAX_GENERATIONS} per analysis).")
 
         if not self.key:
             raise CreativeError(

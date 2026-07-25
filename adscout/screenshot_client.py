@@ -51,10 +51,13 @@ def _scalar(value):
 
 
 class ScreenshotClient:
+    MAX_CAPTURES = 2  # slow (~30-90s each) — cap per analysis
+
     def __init__(self, settings, *, mock: bool = False, timeout: float = 30.0) -> None:
         self.settings = settings
         self.mock = mock
         self.token = getattr(settings, "hexomatic_api_key", None)
+        self._captures = 0
         self._http = None if mock else httpx.Client(
             timeout=timeout,
             headers={"User-Agent": BROWSER_UA, "Accept": "application/json"},
@@ -63,10 +66,16 @@ class ScreenshotClient:
     # -- public API --------------------------------------------------------
 
     def capture(self, url: str, *, devices: list[str] | None = None,
-                max_wait: int = 120, interval: int = 6) -> dict:
+                max_wait: int = 90, interval: int = 6) -> dict:
         """Capture `url` and return {"source": url, "images": {device: img_url}}."""
         if self.mock:
             return _mock_capture(url)
+
+        self._captures += 1
+        if self._captures > self.MAX_CAPTURES:
+            raise ScreenshotError(
+                f"Screenshot budget reached ({self.MAX_CAPTURES} per analysis — each is "
+                "slow). Describe the page from the ad data instead of capturing more.")
 
         if not self.token:
             raise ScreenshotError(

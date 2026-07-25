@@ -9,9 +9,9 @@ the reasoning is auditable.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
-
 import re
+import time
+from dataclasses import dataclass, field
 
 from .client import SpyFuClient
 from .copywriting import COPY_FRAME
@@ -105,6 +105,14 @@ _EMPTY_FALLBACK = ("The analysis ran but didn't produce a written summary — th
                    "or raise Max steps. The evidence trace below shows what was gathered.")
 
 
+# Slow tools (each ~30-90s). Once the run passes SLOW_DEADLINE seconds we refuse
+# to START new slow calls, so the request always has time to finish and write an
+# answer within the serverless function's hard limit (~300s).
+_SLOW_TOOLS = {"search_facebook_ads", "get_advertiser_facebook_ads",
+               "capture_landing_page"}
+_SLOW_DEADLINE = 200.0
+
+
 def _wants_creative(question: str) -> bool:
     q = question.lower()
     return (any(v in q for v in _CREATE_VERBS)
@@ -188,6 +196,7 @@ class Analyst:
         screenshots: list[dict] = []
         creatives: list[dict] = []
         nudged = False
+        started = time.monotonic()
 
         # Pick the output mode from the question. Keyword-research swaps the
         # verdict format for a structured JSON object; creative adds the copy
@@ -239,6 +248,21 @@ class Analyst:
             tool_results = []
             for block in resp.content:
                 if getattr(block, "type", None) != "tool_use":
+                    continue
+                # Refuse to START a new slow lookup when time is nearly up, so
+                # the model concludes instead of blowing the function timeout.
+                if (block.name in _SLOW_TOOLS
+                        and time.monotonic() - started > _SLOW_DEADLINE):
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": json.dumps({"error":
+                            "Time budget reached — no more slow Meta/screenshot "
+                            "lookups. Write your final answer now with the data "
+                            "already gathered."}),
+                    })
+                    trace.append(ToolCall(block.name, dict(block.input),
+                                          "skipped: time budget"))
                     continue
                 try:
                     data = dispatch(

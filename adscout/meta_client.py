@@ -41,6 +41,10 @@ def ad_library_search_url(query: str, country: str = "US", active: bool = True) 
 
 
 class MetaAdLibraryClient:
+    # Hard cap on live Meta scrapes per analysis. Each Apify run is slow
+    # (~30-60s), so an unbounded model can blow the serverless timeout.
+    MAX_CALLS = 3
+
     def __init__(
         self,
         settings,
@@ -52,6 +56,7 @@ class MetaAdLibraryClient:
         self.mock = mock
         self.actor = os.getenv("APIFY_FB_ACTOR", DEFAULT_ACTOR).replace("/", "~")
         self.token = getattr(settings, "apify_token", None) or os.getenv("APIFY_TOKEN")
+        self._calls = 0
         self._http = None if mock else httpx.Client(timeout=timeout)
 
     # -- public API --------------------------------------------------------
@@ -68,6 +73,12 @@ class MetaAdLibraryClient:
         """Return live/inactive Meta ads for a keyword search or a Page URL."""
         if self.mock:
             return _mock_ads(query or page_url or "offer", limit)
+
+        self._calls += 1
+        if self._calls > self.MAX_CALLS:
+            raise MetaError(
+                f"Meta ad-lookup budget reached ({self.MAX_CALLS} per analysis — each "
+                "is slow). Stop searching and conclude with the ads already gathered.")
 
         if not self.token:
             raise MetaError(
