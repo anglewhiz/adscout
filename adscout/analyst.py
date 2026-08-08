@@ -338,6 +338,8 @@ class Analyst:
 
 
 def _summarize(data: dict) -> str:
+    if isinstance(data, dict) and data.get("error"):
+        return f"error: {str(data['error'])[:80]}"
     results = data.get("results")
     if isinstance(results, list):
         total = data.get("totalMatchingResults")

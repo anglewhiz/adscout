@@ -187,15 +187,18 @@ TOOLS: list[dict] = [
             "salePrice) pre-computed and rows ranked by it. Use to see what is ACTUALLY "
             "SELLING in a niche: dominant sellers, discount-vs-full-price patterns, and "
             "which price band the volume concentrates in. US TikTok Shop only. "
-            "SLOW (~60-90s) — counts toward the 2-call TikTok budget per answer."
+            "SLOW (~75-90s) and ONE keyword per call (runtime scales with products — "
+            "extra keywords are ignored); pick the single best keyword, or spend your "
+            "second TikTok-budget call on another keyword. Counts toward the 2-call "
+            "TikTok budget per answer."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "keywords": {"type": "array", "items": {"type": "string"},
-                             "description": "1-3 product keywords, e.g. ['lip oil','lip stain']."},
-                "limit": {"type": "integer", "minimum": 1, "maximum": 25,
-                          "description": "Products per keyword (default 12)."},
+                             "description": "ONE product keyword, e.g. ['lip oil']. Only the first is used."},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 15,
+                          "description": "Products to return (default 12, max 15)."},
             },
             "required": ["keywords"],
         },

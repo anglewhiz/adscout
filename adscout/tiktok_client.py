@@ -121,11 +121,19 @@ class TikTokClient:
     # -- public API --------------------------------------------------------
 
     def shop(self, keywords: list[str] | str, *, limit: int = 12) -> dict:
-        """TikTok Shop products for keyword(s), with revenue estimation built in."""
+        """TikTok Shop products for ONE keyword, with revenue estimation built in.
+
+        Runtime scales with total products scraped (1 keyword x ~12 products is
+        ~75-90s; three keywords blew the serverless window in production), so
+        only the FIRST keyword is used — additional coverage comes from a second
+        call within the per-analysis budget.
+        """
         if isinstance(keywords, str):
             keywords = [keywords]
-        keywords = [k.strip() for k in keywords if k and k.strip()][:3]
-        limit = max(1, min(int(limit or 12), 25))
+        keywords = [k.strip() for k in keywords if k and k.strip()][:1]
+        if not keywords:
+            raise TikTokError("No keyword given for the TikTok Shop lookup.")
+        limit = max(1, min(int(limit or 12), 15))
         if self.mock:
             return _mock_shop(keywords, limit)
 
