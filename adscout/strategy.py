@@ -81,6 +81,22 @@ STRATEGIC LENSES — apply these to interpret the competitive data, not just rep
   the hook, offer structure, guarantee, and funnel sequence — what makes it work —
   not the colours/layout. The live funnel is ground truth; it reveals what actually
   sells better than any stated claim or self-description.
+- The market flip (intent over volume). A niche's CPC spread is a map of intent
+  timing, not just competition: cheap high-volume terms name WHO someone is and
+  what life moment they're in (entry keywords — "puppy names"); expensive terms
+  name WHAT that same person is about to buy (money keywords — "pet insurance for
+  puppies"). The Tuesday searcher of the cheap term IS the Saturday searcher of
+  the expensive one. So read entry/money ADJACENCY: a wide CPC gap between a
+  high-volume entry conversation and a $5-10+ CPC money lane next door (the four
+  reliable lanes: insurance, big-ticket services, SaaS/subscriptions, financial
+  products) is a flip opportunity — capture cheaply at the door, monetize at the
+  invoice, with an email-capturing bridge asset in between. The inverse is the
+  kill rule: traffic with NO expensive money lane adjacent to it is a hobby, not
+  a market — say so. Money pages themselves rarely win cold SERP traffic; they
+  get fed from the cheap layer, so judge a rival's money page by what upstream
+  capture assets funnel into it. Long-running ads on a money keyword are the
+  market telling you which offers profitably pay those CPCs — read them before
+  writing a money page.
 - Enter the proven market with a hook; don't invent an empty category. The winning
   move is to enter a crowded, proven market with a unique angle, convert on demand
   that already exists, then own the adjacent offshoot — not to launch a brand-new

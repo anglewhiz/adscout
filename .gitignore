@@ -2,6 +2,7 @@
 .env
 .env.local
 spyfu-vercel.env
+.vercel-token
 
 # Python
 __pycache__/
@@ -16,6 +17,9 @@ venv/
 # Vercel
 .vercel
 
+# Local MCP client config (connects to your personal Vercel account)
+.mcp.json
+
 # Editor / OS
 .DS_Store
 *.log
@@ -23,3 +27,13 @@ venv/
 # Local artifacts
 _extracted/
 spyfu-analyst.zip
+
+.vercel
+.env*
+
+# Node tooling kept LOCAL — a package.json at the repo root makes Vercel
+# detect a Node build and breaks the Python deployment. Tailwind is used as
+# a local build tool; only the generated CSS is committed.
+node_modules/
+package.json
+package-lock.json

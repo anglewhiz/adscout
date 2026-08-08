@@ -73,7 +73,10 @@ in order:
 1. Add an "## Ad concepts" section: for each concept give 2-3 headline options, one line of
    primary text, the offer, and the CTA — each tied to a SPECIFIC finding from the evidence
    (a competitor weakness, an offer gap, an awareness stage). Keep it to 1-2 concepts.
-2. Call generate_creative once per concept to produce the matching VISUAL — this is required,
+2. For each concept, name the landing page type it should land on — by slug from the
+   CONTENT-FRAMEWORK CATALOG (pick by traffic temperature and intent) — and list that page's
+   section order, so the ad's promise has a congruent page to appear on (the congruity rule).
+3. Call generate_creative once per concept to produce the matching VISUAL — this is required,
    not optional, whenever a visual/ad/mockup was requested. In `brief` describe only the image
    (scene, subject, mood, composition) and leave clean space for a headline; put the concept's
    headline in `label`. Do this before writing your final Verdict.
