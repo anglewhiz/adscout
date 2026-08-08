@@ -14,6 +14,7 @@ import time
 from dataclasses import dataclass, field
 
 from .client import SpyFuClient
+from .content_frames import CONTENT_FRAMES
 from .copywriting import COPY_FRAME
 from .research import RESEARCH_INSTRUCTIONS, extract_research
 from .strategy import STRATEGY_FRAME
@@ -32,6 +33,17 @@ get_advertiser_facebook_ads — live ad creatives, offers, and CTAs.
 - ORGANIC SEO AUTHORITY (Moz): get_seo_authority (Domain Authority, spam score, \
 linking root domains), get_linking_domains (who links to them), get_top_pages \
 (which pages earn the links).
+- TIKTOK (ads + commerce): search_tiktok_ads returns ad creatives WITH \
+impression ranges, spend ranges, run dates and age/gender targeting — \
+performance data Meta's library lacks. search_tiktok_shop returns what is \
+ACTUALLY SELLING (US TikTok Shop): units sold, prices, sellers, with estRevenue \
+(soldCount x salePrice) pre-ranked — read seller concentration, discount-vs-\
+full-price patterns, and which price band the volume clusters in. Both are slow \
+(~60-100s); at most 2 TikTok calls per answer.
+- OFFER EXTRACTION: extract_product_page pulls the STRUCTURED offer from any \
+product/landing URL (names, prices, brand, rating, review counts) — prefer it \
+over a screenshot when the question is about pricing/offer structure; pair it \
+with the landing URL behind a Meta or TikTok ad.
 - VISUAL: capture_landing_page screenshots a destination page (mobile+desktop) \
 and shows it to the user. Great for the landing page behind a Meta ad (its \
 linkUrl) or a funnel/offer page. Slow and metered — at most 1-2 per answer, only \
@@ -59,10 +71,11 @@ linking domains) vs thin//new, and to size up how hard a niche is to rank in. A 
 site with no ads but strong authority competes organically, not on spend.
 - Note data limitations honestly (estimates, sample sizes, single-country scope, \
 and which channel a finding came from).
-- TIME BUDGET: the whole analysis must finish within a few minutes. Meta ad \
-lookups and screenshots each take ~30-60s, so be economical — don't stack \
-exhaustive multi-channel research AND a screenshot AND image generation in one \
-answer. Gather what the question needs, prioritise, then conclude.
+- TIME BUDGET: the whole analysis must finish within a few minutes. Meta, \
+TikTok, screenshot and product-extraction calls each take ~30-100s, so be \
+economical — don't stack exhaustive multi-channel research AND slow lookups AND \
+image generation in one answer. Gather what the question needs, prioritise, \
+then conclude.
 
 FORMAT — return the final answer as Markdown in exactly this shape:
 
@@ -71,9 +84,9 @@ Two to four sentences answering the question directly, up front.
 
 ## Evidence
 A "### " sub-heading for EACH channel you actually pulled data from — use the \
-names "Google Search (SpyFu)", "Facebook & Instagram (Meta)", "SEO Authority \
-(Moz)". Under each, tight bullets of concrete findings with the **numbers in \
-bold**. Omit any channel you did not use. If a channel returned nothing, say so \
+names "Google Search (SpyFu)", "Facebook & Instagram (Meta)", "TikTok (Ads & \
+Shop)", "SEO Authority (Moz)". Under each, tight bullets of concrete findings \
+with the **numbers in bold**. Omit any channel you did not use. If a channel returned nothing, say so \
 in one bullet — that absence is itself evidence.
 
 ## Verdict: SUPPORTED
@@ -109,8 +122,9 @@ _EMPTY_FALLBACK = ("The analysis ran but didn't produce a written summary — th
 # to START new slow calls, so the request always has time to finish and write an
 # answer within the serverless function's hard limit (~300s).
 _SLOW_TOOLS = {"search_facebook_ads", "get_advertiser_facebook_ads",
-               "capture_landing_page"}
-_SLOW_DEADLINE = 200.0
+               "capture_landing_page", "search_tiktok_shop", "search_tiktok_ads",
+               "extract_product_page"}
+_SLOW_DEADLINE = 150.0
 
 
 def _wants_creative(question: str) -> bool:
@@ -161,6 +175,8 @@ class Analyst:
         moz=None,
         shots=None,
         creative=None,
+        tiktok=None,
+        products=None,
         model: str = "claude-sonnet-5",
         default_country: str = "US",
         max_steps: int = 8,
@@ -171,6 +187,8 @@ class Analyst:
         self.moz = moz
         self.shots = shots
         self.creative = creative
+        self.tiktok = tiktok
+        self.products = products
         self.model = model
         self.default_country = default_country
         self.max_steps = max_steps
@@ -200,25 +218,36 @@ class Analyst:
 
         # Pick the output mode from the question. Keyword-research swaps the
         # verdict format for a structured JSON object; creative adds the copy
-        # playbook. Both are conditional so ordinary queries stay lean.
+        # playbook. Both add the content-framework catalog so recommended
+        # pages/assets are named by buildable framework slugs. All conditional
+        # so ordinary queries stay lean.
         research_mode = _wants_keyword_research(question)
         max_tokens = self.max_tokens
         if research_mode:
-            system = SYSTEM_PROMPT + "\n\n" + RESEARCH_INSTRUCTIONS
-            max_tokens = max(self.max_tokens, 8192)  # the full object is large
+            system = (SYSTEM_PROMPT + "\n\n" + RESEARCH_INSTRUCTIONS
+                      + "\n\n" + CONTENT_FRAMES)
+            max_tokens = max(self.max_tokens, 24576)  # the full object is large (market_flip adds ~2-3KB)
         elif _wants_creative(question):
-            system = SYSTEM_PROMPT + "\n\n" + COPY_FRAME
+            system = SYSTEM_PROMPT + "\n\n" + COPY_FRAME + "\n\n" + CONTENT_FRAMES
         else:
             system = SYSTEM_PROMPT
 
         for step in range(1, self.max_steps + 1):
-            resp = self.ai.messages.create(
+            kwargs = dict(
                 model=self.model,
                 max_tokens=max_tokens,
                 system=system,
                 tools=TOOLS,
                 messages=messages,
             )
+            # The SDK refuses non-streaming requests big enough to run >10 min
+            # (research mode's 24K ceiling qualifies): stream and accumulate.
+            # Demo/mock stubs may not implement .stream(), so fall back.
+            if max_tokens > 16384 and hasattr(self.ai.messages, "stream"):
+                with self.ai.messages.stream(**kwargs) as stream:
+                    resp = stream.get_final_message()
+            else:
+                resp = self.ai.messages.create(**kwargs)
 
             if resp.stop_reason != "tool_use":
                 answer = "".join(
@@ -269,6 +298,7 @@ class Analyst:
                         self.spyfu, block.name, dict(block.input),
                         default_country=self.default_country, meta=self.meta,
                         moz=self.moz, shots=self.shots, creative=self.creative,
+                        tiktok=self.tiktok, products=self.products,
                     )
                     if isinstance(data, dict) and data.get("_generated_creative"):
                         creatives.append({

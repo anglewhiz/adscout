@@ -26,6 +26,8 @@ from .config import Settings
 from .endpoints import COUNTRY_CODES
 from .meta_client import MetaAdLibraryClient
 from .moz_client import MozClient
+from .product_client import ProductPageClient
+from .tiktok_client import TikTokClient
 from .creative_client import CreativeClient
 from .screenshot_client import ScreenshotClient
 
@@ -246,7 +248,7 @@ class _DemoAnthropic:
             "keyword_clusters": [
                 {"cluster": "Behavioural problems", "primary_keyword": f"reactive {t}",
                  "supporting_keywords": [f"{t} for anxiety", f"aggressive {t}"], "intent": "problem-aware",
-                 "recommended_page": "One dedicated page per problem"},
+                 "recommended_page": "sales"},
             ],
             "customer_problems": ["Stressful, unpredictable outcomes in public",
                                   "Tried generic advice with no lasting result", "Worried it's too late to fix"],
@@ -254,7 +256,24 @@ class _DemoAnthropic:
             "customer_objections": ["Will this actually work for my case?", "Is it worth the cost?", "How long until results?"],
             "content_opportunities": [
                 {"searcher_problem": "The specific behaviour flares in public.", "target_keyword": f"reactive {t} near me",
-                 "funnel_stage": "BOFU", "recommended_asset": "Local service landing page", "recommended_cta": "Book an assessment"},
+                 "funnel_stage": "BOFU", "recommended_asset": "sales", "framework": "sales",
+                 "outline": ["Hero: calm, controlled walks — outcome, number, timeframe",
+                             "Problem agitation: the public flare-up scenario",
+                             "Benefits: the assessment-first method, as modules",
+                             "Testimonials: before/after reactivity cases",
+                             "Pricing block with assessment CTA",
+                             "FAQ ordered by objection frequency"],
+                 "bridge": "sales — free assessment as the risk-reversal bridge",
+                 "recommended_cta": "Book an assessment"},
+                {"searcher_problem": "Owners want quick wins before paying anyone.", "target_keyword": f"{t} tips",
+                 "funnel_stage": "TOFU", "recommended_asset": "youtube_cutup", "framework": "youtube_cutup",
+                 "outline": ["Lede: what the video teaches and why it was cut up",
+                             "Numbered steps as H2s with screenshots",
+                             "Your corrections and additions per step",
+                             "Full video embed",
+                             "End-of-post opt-in: the checklist"],
+                 "bridge": "steps — the step-by-step checklist",
+                 "recommended_cta": "Download the checklist"},
             ],
             "offer_opportunities": ["Risk-reversal guarantee tied to the specific outcome",
                                     "Free assessment / quiz as the reciprocity entry offer"],
@@ -319,7 +338,9 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
             MetaAdLibraryClient(settings, mock=data_mock) as meta, \
             MozClient(settings, mock=data_mock) as moz, \
             ScreenshotClient(settings, mock=data_mock) as shots, \
-            CreativeClient(settings, mock=data_mock) as creative:
+            CreativeClient(settings, mock=data_mock) as creative, \
+            TikTokClient(settings, mock=data_mock) as tiktok, \
+            ProductPageClient(settings, mock=data_mock) as products:
         analyst = Analyst(
             client,
             anthropic_client=anthropic_client,
@@ -327,6 +348,8 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
             moz=moz,
             shots=shots,
             creative=creative,
+            tiktok=tiktok,
+            products=products,
             model=settings.model,
             default_country=settings.default_country,
             max_steps=max_steps,
@@ -429,6 +452,7 @@ def status() -> dict:
         "has_moz": _real(settings.moz_access_id) and _real(settings.moz_secret_key),
         "has_screenshots": _real(settings.hexomatic_api_key),
         "has_creative": _real(settings.fal_key),
+        "has_tiktok": _real(settings.apify_token),
         "auth_required": bool(_access_password()),
         "model": settings.model,
         "default_country": settings.default_country,

@@ -180,6 +180,66 @@ TOOLS: list[dict] = [
         },
     },
     {
+        "name": "search_tiktok_shop",
+        "description": (
+            "TikTok Shop COMMERCE data for keyword(s): products with units sold, sale "
+            "vs original price, rating, and seller — plus estRevenue (soldCount x "
+            "salePrice) pre-computed and rows ranked by it. Use to see what is ACTUALLY "
+            "SELLING in a niche: dominant sellers, discount-vs-full-price patterns, and "
+            "which price band the volume concentrates in. US TikTok Shop only. "
+            "SLOW (~60-90s) — counts toward the 2-call TikTok budget per answer."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "keywords": {"type": "array", "items": {"type": "string"},
+                             "description": "1-3 product keywords, e.g. ['lip oil','lip stain']."},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 25,
+                          "description": "Products per keyword (default 12)."},
+            },
+            "required": ["keywords"],
+        },
+    },
+    {
+        "name": "search_tiktok_ads",
+        "description": (
+            "TikTok AD LIBRARY search: ad creatives for a topic/brand WITH impression "
+            "ranges, spend ranges, run dates, landing URLs and age/gender targeting — "
+            "performance data Meta's library does not expose. Use to see who advertises "
+            "a niche on TikTok, how heavily, and aimed at whom. Ignore rows whose "
+            "status is unavailable/rejected unless asked about moderation. "
+            "SLOW (~60-100s) — counts toward the 2-call TikTok budget per answer."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Topic, niche or brand, e.g. 'meal kit'."},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 30,
+                          "description": "Max ads to return (default 15)."},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "extract_product_page",
+        "description": (
+            "Extract STRUCTURED offer data from any e-commerce product or landing page "
+            "URL: product names, prices, brand, rating, review counts, description. "
+            "Where capture_landing_page shows what a page looks like, this returns what "
+            "the offer IS — use it to compare a rival's actual pricing/offer structure, "
+            "e.g. on the landing URL behind a Meta or TikTok ad. "
+            "SLOW (~90s), at most 2 per answer — prefer it over a screenshot when the "
+            "question is about prices/offer structure rather than visuals."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "Full product or landing page URL."},
+            },
+            "required": ["url"],
+        },
+    },
+    {
         "name": "generate_creative",
         "description": (
             "GENERATE the VISUAL for a new ad creative or landing-page hero mockup, using "
@@ -284,7 +344,7 @@ TOOLS: list[dict] = [
 
 def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *,
              default_country: str = "US", meta=None, moz=None, shots=None,
-             creative=None) -> dict:
+             creative=None, tiktok=None, products=None) -> dict:
     """Execute a tool call and return the raw JSON result.
 
     SpyFu (Google Search) tools use ``client``; Meta (Facebook/Instagram) tools
@@ -293,6 +353,30 @@ def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *,
     """
     country = tool_input.get("country", default_country)
     limit = tool_input.get("limit", 20)
+
+    # -- TikTok (Shop commerce + ad library) -------------------------------
+    if tool_name in ("search_tiktok_shop", "search_tiktok_ads"):
+        if tiktok is None:
+            return {"error": "TikTok lookups are not available in this run "
+                             "(set APIFY_TOKEN to enable them)."}
+        try:
+            if tool_name == "search_tiktok_shop":
+                return tiktok.shop(tool_input["keywords"],
+                                   limit=tool_input.get("limit", 12))
+            return tiktok.ads(tool_input["query"],
+                              limit=tool_input.get("limit", 15))
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    # -- Product/offer page extraction -------------------------------------
+    if tool_name == "extract_product_page":
+        if products is None:
+            return {"error": "Product extraction is not available in this run "
+                             "(set APIFY_TOKEN to enable it)."}
+        try:
+            return products.extract(tool_input["url"])
+        except Exception as exc:
+            return {"error": str(exc)}
 
     # -- Creative generation (fal.ai) --------------------------------------
     if tool_name == "generate_creative":

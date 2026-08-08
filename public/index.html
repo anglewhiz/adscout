@@ -247,6 +247,7 @@
   .kw-table td.kw { color: var(--ink); font-weight: 500; }
   .kw-table td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-muted); }
   .kw-table tr:hover td { background: var(--surface-2); }
+  .kw-table .cell-sub { color: var(--ink-faint); font-size: 11.5px; margin-top: 3px; line-height: 1.4; }
   .kw-score { display: inline-block; min-width: 26px; text-align: center; padding: 1px 6px; border-radius: 5px;
               font-weight: 600; font-size: 11.5px; background: rgba(94,106,210,.16); color: var(--primary-hover); }
   .json-actions { display: flex; gap: 8px; margin: 14px 0 4px; }
@@ -258,6 +259,17 @@
   details.json-details summary::before { content: "▸ "; }
   details.json-details[open] summary::before { content: "▾ "; }
   .json-block { max-height: 380px; }
+
+  /* market-flip badges */
+  .role-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .role-entry  { background: rgba(94,106,210,.16); color: var(--primary-hover); }
+  .role-bridge { background: rgba(180,150,60,.18); color: #d4b45e; }
+  .role-money  { background: rgba(60,170,100,.16); color: #55c07f; }
+  .flip-viable   { background: rgba(60,170,100,.16); color: #55c07f; }
+  .flip-marginal { background: rgba(180,150,60,.18); color: #d4b45e; }
+  .flip-unviable { background: rgba(210,80,80,.16);  color: #e07a7a; }
+  .flip-verdict { margin: 2px 0 12px; font-size: 13px; }
+  .flip-verdict .d { color: var(--ink-muted); margin-left: 8px; }
 
   /* full research report */
   .rep-h { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
@@ -376,6 +388,7 @@ const EXAMPLES = [
   "How are people running ads in the dog food niche?",
   "Is anyone spending big on 'meal kit' ads?",
   "Find keyword opportunities in the dog training niche",
+  "Find keyword opportunities for meal kits and recommend a content plan as JSON",
   "What landing page is Factor sending their Facebook ads to? Show me it.",
   "Is nutriketo.com a real operator or a dead funnel?",
 ];
@@ -445,6 +458,7 @@ function updateStatusLine() {
   const chans = [
     ["Google", CONFIG.has_provider],
     ["Meta", CONFIG.has_meta],
+    ["TikTok", CONFIG.has_tiktok],
     ["Moz", CONFIG.has_moz],
     ["Screens", CONFIG.has_screenshots],
     ["Creative", CONFIG.has_creative],
@@ -598,6 +612,7 @@ function keywordTable(kops) {
     ["CPC","cpc"],["Comp","paid_competitors"],["Diff","difficulty"],
     ["Intent","search_intent"],["Stage","funnel_stage"],["Score","opportunity_score"],
     ["Recommendation","recommendation"]];
+  if (kops.some(k => k.keyword_role)) cols.splice(8, 0, ["Role","keyword_role"]);
   const tw = el("div", "tbl-wrap");
   let t = '<table class="kw-table"><thead><tr>' + cols.map(c => `<th>${c[0]}</th>`).join("") + "</tr></thead><tbody>";
   kops.forEach(k => {
@@ -609,6 +624,7 @@ function keywordTable(kops) {
       if (key === "opportunity_score")
         return `<td class="num"><span class="kw-score">${fmtNum(v)}</span></td>`;
       if (key === "keyword") return `<td class="kw">${escapeHtml(String(v ?? ""))}</td>`;
+      if (key === "keyword_role") return `<td>${v ? `<span class="role-badge role-${escapeHtml(String(v))}">${escapeHtml(String(v))}</span>` : "—"}</td>`;
       return `<td>${escapeHtml(String(v ?? "—"))}</td>`;
     }).join("") + "</tr>";
   });
@@ -648,6 +664,32 @@ function researchToMarkdown(r) {
       k.paid_competitors ?? "", k.difficulty ?? "—", k.search_intent ?? "", k.funnel_stage ?? "",
       k.opportunity_score ?? "", String(k.recommendation || "").replace(/\|/g, "/")])));
   }
+  const mfm = r.market_flip;
+  if (mfm && (mfm.flip_viability || has(mfm.money_lanes) || has(mfm.flip_pairs))) {
+    L.push("## Market Flip");
+    if (mfm.flip_viability) L.push(`**Flip viability:** ${mfm.flip_viability}${mfm.viability_reason ? ` — ${mfm.viability_reason}` : ""}`);
+    if (has(mfm.money_lanes)) {
+      L.push("### Money Lanes");
+      mfm.money_lanes.forEach(l => L.push(`- **${String(l.lane || "").replace(/_/g, " ")}**${l.cpc_range ? ` (${l.cpc_range})` : ""}: ${(l.keywords || []).join(", ")}${l.who_pays ? ` — who pays: ${l.who_pays}` : ""}`));
+    }
+    if (has(mfm.flip_pairs)) {
+      L.push("### Flip Pairs (entry → money)");
+      L.push(row(["Entry","Vol","CPC","Money","Vol","CPC","Bridge asset","Capture","Timeline"]));
+      L.push(row(Array(9).fill("---")));
+      mfm.flip_pairs.forEach(p => L.push(row([
+        p.entry_keyword || "", p.entry_volume ?? "", p.entry_cpc == null ? "—" : "$" + p.entry_cpc,
+        p.money_keyword || "", p.money_volume ?? "", p.money_cpc == null ? "—" : "$" + p.money_cpc,
+        p.bridge_asset || "", p.capture_mechanism || "", p.intent_timeline || ""])));
+    }
+    const pyr = mfm.content_pyramid;
+    if (pyr && (has(pyr.base_traffic) || has(pyr.middle_trust) || has(pyr.top_money))) {
+      L.push("### Content Pyramid");
+      if (has(pyr.base_traffic)) L.push(`- **Base (traffic):** ${pyr.base_traffic.map(asText).join(", ")}`);
+      if (has(pyr.middle_trust)) L.push(`- **Middle (trust):** ${pyr.middle_trust.map(asText).join(", ")}`);
+      if (has(pyr.top_money)) L.push(`- **Top (money):** ${pyr.top_money.map(asText).join(", ")}`);
+      if (pyr.note) L.push(`_${pyr.note}_`);
+    }
+  }
   if (has(r.secondary_opportunities)) {
     L.push("## Secondary Opportunities");
     r.secondary_opportunities.forEach(s => L.push(`- **${s.keyword || ""}** — ${s.why_it_matters || ""}${s.best_use_case ? ` _(${s.best_use_case})_` : ""}`));
@@ -670,9 +712,12 @@ function researchToMarkdown(r) {
     .forEach(([lbl, k]) => { if (has(r[k])) { L.push(`## Customer ${lbl}`); r[k].forEach(x => L.push(`- ${asText(x)}`)); } });
   if (has(r.content_opportunities)) {
     L.push("## Content Opportunities");
-    L.push(row(["Searcher problem","Keyword","Stage","Asset","CTA"]));
-    L.push(row(Array(5).fill("---")));
-    r.content_opportunities.forEach(c => L.push(row([c.searcher_problem || "", c.target_keyword || "", c.funnel_stage || "", c.recommended_asset || "", c.recommended_cta || ""])));
+    L.push(row(["Searcher problem","Keyword","Stage","Asset","Framework","Bridge","CTA"]));
+    L.push(row(Array(7).fill("---")));
+    r.content_opportunities.forEach(c => L.push(row([c.searcher_problem || "", c.target_keyword || "", c.funnel_stage || "", c.recommended_asset || "", c.framework || "", c.bridge || "", c.recommended_cta || ""])));
+    r.content_opportunities.forEach(c => {
+      if (has(c.outline)) L.push(`- **${c.target_keyword || c.framework || ""} outline:** ${c.outline.map(asText).join(" · ")}`);
+    });
   }
   if (has(r.offer_opportunities)) { L.push("## Offer Opportunities"); r.offer_opportunities.forEach(o => L.push(`- ${asText(o)}`)); }
   if (has(r.competitor_gaps)) { L.push("## Competitor Gaps"); r.competitor_gaps.forEach(o => L.push(`- ${asText(o)}`)); }
@@ -711,6 +756,12 @@ function renderResearch(r) {
   wrap.appendChild(sectionHead(
     `Keyword research${meta.niche ? " · " + meta.niche : ""}${kops.length ? " · " + kops.length + " keywords" : ""}`));
 
+  if (r.recovered_from_truncation) {
+    const warn = el("div", "banner info");
+    warn.textContent = "The model's output hit the length limit — the tail of this report was trimmed to recover it. Re-ask with a narrower question for the full object.";
+    wrap.appendChild(warn);
+  }
+
   // export actions (JSON + MD)
   const actions = el("div", "json-actions");
   const mkBtn = (label, fn) => { const b = el("button", "btn-sm", label); b.type = "button"; b.onclick = fn; return b; };
@@ -740,6 +791,52 @@ function renderResearch(r) {
   }
 
   if (kops.length) { wrap.appendChild(el("div", "rep-h", "Keyword opportunities")); wrap.appendChild(keywordTable(kops)); }
+
+  // Market Flipper read: viability, money lanes, entry->money pairs, pyramid
+  const mf = r.market_flip;
+  if (mf && (mf.flip_viability || has(mf.money_lanes) || has(mf.flip_pairs))) {
+    wrap.appendChild(el("div", "rep-h", "Market flip"));
+    if (mf.flip_viability) {
+      const v = String(mf.flip_viability).toLowerCase();
+      wrap.appendChild(el("div", "flip-verdict",
+        `<span class="role-badge flip-${esc(v)}">${esc(v)}</span>` +
+        (mf.viability_reason ? ` <span class="d">${esc(mf.viability_reason)}</span>` : "")));
+    }
+    if (has(mf.money_lanes)) {
+      const g = el("div", "rep-cards");
+      mf.money_lanes.forEach(l => {
+        let inner = `<div class="t">$ ${esc(String(l.lane || "").replace(/_/g, " "))}${l.cpc_range ? ` · ${esc(l.cpc_range)}` : ""}</div>`;
+        if (has(l.keywords)) inner += `<div class="chips-sm">${l.keywords.map(k => `<span>${esc(k)}</span>`).join("")}</div>`;
+        if (l.who_pays) inner += `<div class="u">Who pays: ${esc(l.who_pays)}</div>`;
+        g.appendChild(el("div", "rep-card", inner));
+      });
+      wrap.appendChild(g);
+    }
+    if (has(mf.flip_pairs)) {
+      const tw = el("div", "tbl-wrap");
+      let t = '<table class="kw-table"><thead><tr><th>Entry (the door)</th><th>Money (the invoice)</th><th>Bridge asset</th><th>Capture</th><th>Timeline</th></tr></thead><tbody>';
+      mf.flip_pairs.forEach(p => {
+        const kw = (w, vol, cpc) => `<strong>${esc(w || "—")}</strong><div class="cell-sub">${vol != null ? fmtNum(vol) + "/mo" : ""}${cpc != null ? " · $" + esc(String(cpc)) : ""}</div>`;
+        t += `<tr><td class="kw">${kw(p.entry_keyword, p.entry_volume, p.entry_cpc)}</td>` +
+             `<td class="kw">${kw(p.money_keyword, p.money_volume, p.money_cpc)}</td>` +
+             `<td>${esc(p.bridge_asset ?? "—")}</td><td>${esc(p.capture_mechanism ?? "—")}</td><td>${esc(p.intent_timeline ?? "—")}</td></tr>`;
+      });
+      t += "</tbody></table>"; tw.innerHTML = t; wrap.appendChild(tw);
+    }
+    const pyr = mf.content_pyramid;
+    if (pyr && (has(pyr.base_traffic) || has(pyr.middle_trust) || has(pyr.top_money))) {
+      const grid = el("div", "cols3");
+      [["Base — traffic", "base_traffic"], ["Middle — trust", "middle_trust"], ["Top — money pages", "top_money"]].forEach(([lbl, k]) => {
+        const col = el("div", "col", `<div class="lbl">${lbl}</div>`);
+        const ul = el("ul", "rep-list");
+        (pyr[k] || []).forEach(x => ul.appendChild(el("li", null, esc(asText(x)))));
+        col.appendChild(ul);
+        grid.appendChild(col);
+      });
+      wrap.appendChild(grid);
+      if (pyr.note) wrap.appendChild(el("div", "rep-p", `<em>${esc(pyr.note)}</em>`));
+    }
+  }
 
   if (has(r.secondary_opportunities)) {
     wrap.appendChild(el("div", "rep-h", "Secondary opportunities"));
@@ -787,10 +884,14 @@ function renderResearch(r) {
 
   if (has(r.content_opportunities)) {
     wrap.appendChild(el("div", "rep-h", "Content opportunities"));
-    const cols = [["Searcher problem","searcher_problem"],["Keyword","target_keyword"],["Stage","funnel_stage"],["Asset","recommended_asset"],["CTA","recommended_cta"]];
+    const cols = [["Searcher problem","searcher_problem"],["Keyword","target_keyword"],["Stage","funnel_stage"],["Asset","recommended_asset"],["Framework","framework"],["Bridge","bridge"],["CTA","recommended_cta"]];
     const tw = el("div", "tbl-wrap");
     let t = '<table class="kw-table"><thead><tr>' + cols.map(c => `<th>${c[0]}</th>`).join("") + "</tr></thead><tbody>";
-    r.content_opportunities.forEach(c => { t += "<tr>" + cols.map(([_, k]) => `<td>${esc(c[k] ?? "—")}</td>`).join("") + "</tr>"; });
+    r.content_opportunities.forEach(c => { t += "<tr>" + cols.map(([_, k]) => {
+      if (k === "framework" && has(c.outline))
+        return `<td>${esc(c[k] ?? "—")}<div class="cell-sub">${esc(c.outline.join(" · "))}</div></td>`;
+      return `<td>${esc(c[k] ?? "—")}</td>`;
+    }).join("") + "</tr>"; });
     t += "</tbody></table>"; tw.innerHTML = t; wrap.appendChild(tw);
   }
 
@@ -830,6 +931,37 @@ function renderResearch(r) {
   return wrap;
 }
 
+// Client-side mirror of the server's truncation repair: pull the JSON out of
+// the answer text, and if it was cut mid-stream close every open bracket.
+function salvageResearch(text) {
+  if (!text) return null;
+  const m = text.match(/```(?:json)?\s*([\s\S]*?)(?:```|$)/);
+  let s = (m ? m[1] : text);
+  const start = s.indexOf("{");
+  if (start === -1) return null;
+  s = s.slice(start).trim();
+  for (let i = 0; i < 400; i++) {
+    try { const o = JSON.parse(s); return (o && typeof o === "object") ? o : null; } catch (_) {}
+    // trim trailing separators, close open strings/brackets, then retry
+    s = s.replace(/[\s,:]+$/, "");
+    const stack = []; let inStr = false, escNext = false;
+    for (const ch of s) {
+      if (inStr) { if (escNext) escNext = false; else if (ch === "\\") escNext = true; else if (ch === '"') inStr = false; }
+      else if (ch === '"') inStr = true;
+      else if (ch === "{" || ch === "[") stack.push(ch);
+      else if (ch === "}" || ch === "]") stack.pop();
+    }
+    let attempt = inStr ? s + '"' : s;
+    attempt = attempt.replace(/[\s,:]+$/, "");
+    const closers = stack.reverse().map(c => c === "{" ? "}" : "]").join("");
+    try { const o = JSON.parse(attempt + closers); return (o && typeof o === "object") ? o : null; } catch (_) {}
+    const cut = Math.max(s.lastIndexOf(","), s.lastIndexOf("{"), s.lastIndexOf("["));
+    if (cut <= 0) return null;
+    s = s.slice(0, cut);
+  }
+  return null;
+}
+
 function buildResultCard(data) {
   const card = document.createElement("div");
   card.className = "card";
@@ -843,6 +975,24 @@ function buildResultCard(data) {
 
   if (data.research) {
     card.appendChild(renderResearch(data.research));
+  } else if (/"research_summary"/.test(data.answer || "")) {
+    // Research mode was requested but the server didn't attach a parsed object
+    // (usually a max_tokens cut-off). Try to salvage it client-side before
+    // falling back to raw text — a formatted partial report beats a JSON blob.
+    const salvaged = salvageResearch(data.answer);
+    if (salvaged) {
+      salvaged.recovered_from_truncation = true;
+      card.appendChild(renderResearch(salvaged));
+    } else {
+      const warn = document.createElement("div");
+      warn.className = "banner info";
+      warn.textContent = "The research object came back malformed (usually cut off by the output limit), so the formatted report is unavailable. Raw output below — try re-asking with a narrower niche or fewer keywords.";
+      card.appendChild(warn);
+      const pre = document.createElement("pre");
+      pre.className = "json-block";
+      pre.textContent = data.answer;
+      card.appendChild(pre);
+    }
   } else {
     card.appendChild(renderAnswer(data.answer || "(no answer)"));
   }
