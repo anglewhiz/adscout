@@ -66,6 +66,10 @@ class Settings:
     hexomatic_api_key: str | None = None
     # fal.ai key — ad-creative / landing-page mockup generation.
     fal_key: str | None = None
+    # Airtable (Reddit problem-mining base) — validator evidence channel.
+    airtable_pat: str | None = None
+    airtable_base_id: str | None = None
+    airtable_table: str | None = None
 
     @classmethod
     def load(cls) -> "Settings":
@@ -87,6 +91,9 @@ class Settings:
             moz_secret_key=os.getenv("MOZ_SECRET_KEY"),
             hexomatic_api_key=os.getenv("HEXOMATIC_API_KEY"),
             fal_key=os.getenv("FAL_KEY"),
+            airtable_pat=os.getenv("AIRTABLE_PAT") or os.getenv("AIRTABLE_API_KEY"),
+            airtable_base_id=os.getenv("AIRTABLE_BASE_ID"),
+            airtable_table=os.getenv("AIRTABLE_TABLE"),
         )
 
     def has_provider_auth(self) -> bool:

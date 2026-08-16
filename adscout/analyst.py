@@ -18,6 +18,7 @@ from .content_frames import CONTENT_FRAMES
 from .copywriting import COPY_FRAME
 from .research import RESEARCH_INSTRUCTIONS, extract_research
 from .strategy import STRATEGY_FRAME
+from .validator import VALIDATOR_INSTRUCTIONS
 from .tools import TOOLS, dispatch
 
 SYSTEM_PROMPT = """You are a paid-search and SEO marketing analyst. You answer \
@@ -133,6 +134,17 @@ def _wants_creative(question: str) -> bool:
             and any(n in q for n in _CREATE_NOUNS))
 
 
+def _wants_validation(question: str) -> bool:
+    """Detect a request to validate a SaaS/product idea."""
+    q = question.lower()
+    if "validat" in q and any(t in q for t in ("idea", "saas", "product", "app",
+                                               "tool", "startup", "concept")):
+        return True
+    return any(t in q for t in ("should i build", "worth building",
+                                "is there a market for", "is there demand for",
+                                "saas idea", "run the validator"))
+
+
 def _wants_keyword_research(question: str) -> bool:
     """Detect a request for a structured keyword/niche research object."""
     q = question.lower()
@@ -163,6 +175,8 @@ class AnalystResult:
     creatives: list[dict] = field(default_factory=list)
     # Structured keyword-research object (keyword-research mode only).
     research: dict | None = None
+    # Structured idea-validation report (validation mode only).
+    validation: dict | None = None
 
 
 class Analyst:
@@ -177,6 +191,8 @@ class Analyst:
         creative=None,
         tiktok=None,
         products=None,
+        mined=None,
+        domains=None,
         model: str = "claude-sonnet-5",
         default_country: str = "US",
         max_steps: int = 8,
@@ -189,6 +205,8 @@ class Analyst:
         self.creative = creative
         self.tiktok = tiktok
         self.products = products
+        self.mined = mined
+        self.domains = domains
         self.model = model
         self.default_country = default_country
         self.max_steps = max_steps
@@ -221,9 +239,13 @@ class Analyst:
         # playbook. Both add the content-framework catalog so recommended
         # pages/assets are named by buildable framework slugs. All conditional
         # so ordinary queries stay lean.
-        research_mode = _wants_keyword_research(question)
+        validation_mode = _wants_validation(question)
+        research_mode = (not validation_mode) and _wants_keyword_research(question)
         max_tokens = self.max_tokens
-        if research_mode:
+        if validation_mode:
+            system = SYSTEM_PROMPT + "\n\n" + VALIDATOR_INSTRUCTIONS
+            max_tokens = max(self.max_tokens, 8192)
+        elif research_mode:
             system = (SYSTEM_PROMPT + "\n\n" + RESEARCH_INSTRUCTIONS
                       + "\n\n" + CONTENT_FRAMES)
             max_tokens = max(self.max_tokens, 24576)  # the full object is large (market_flip adds ~2-3KB)
@@ -267,9 +289,11 @@ class Analyst:
                         "gathered above."})
                     continue
                 research = extract_research(answer) if research_mode else None
+                validation = extract_research(answer) if validation_mode else None
                 return AnalystResult(
                     answer=answer or _EMPTY_FALLBACK, trace=trace, steps=step,
-                    screenshots=screenshots, creatives=creatives, research=research)
+                    screenshots=screenshots, creatives=creatives, research=research,
+                    validation=validation)
 
             # Record the assistant turn (with its tool_use blocks) verbatim.
             messages.append({"role": "assistant", "content": resp.content})
@@ -299,6 +323,7 @@ class Analyst:
                         default_country=self.default_country, meta=self.meta,
                         moz=self.moz, shots=self.shots, creative=self.creative,
                         tiktok=self.tiktok, products=self.products,
+                        mined=self.mined, domains=self.domains,
                     )
                     if isinstance(data, dict) and data.get("_generated_creative"):
                         creatives.append({

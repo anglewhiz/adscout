@@ -24,6 +24,8 @@ from .analyst import Analyst, _wants_keyword_research
 from .client import SpyFuClient
 from .config import Settings
 from .endpoints import COUNTRY_CODES
+from .airtable_client import MinedProblemsClient
+from .domain_client import DomainClient
 from .meta_client import MetaAdLibraryClient
 from .moz_client import MozClient
 from .product_client import ProductPageClient
@@ -340,7 +342,9 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
             ScreenshotClient(settings, mock=data_mock) as shots, \
             CreativeClient(settings, mock=data_mock) as creative, \
             TikTokClient(settings, mock=data_mock) as tiktok, \
-            ProductPageClient(settings, mock=data_mock) as products:
+            ProductPageClient(settings, mock=data_mock) as products, \
+            MinedProblemsClient(settings, mock=data_mock) as mined, \
+            DomainClient(settings, mock=data_mock) as domains:
         analyst = Analyst(
             client,
             anthropic_client=anthropic_client,
@@ -350,6 +354,8 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
             creative=creative,
             tiktok=tiktok,
             products=products,
+            mined=mined,
+            domains=domains,
             model=settings.model,
             default_country=settings.default_country,
             max_steps=max_steps,
@@ -368,6 +374,7 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
         "screenshots": result.screenshots,
         "creatives": result.creatives,
         "research": research,
+        "validation": result.validation,
         "trace": [
             {"name": c.name, "input": c.input, "result_summary": c.result_summary}
             for c in result.trace
@@ -453,6 +460,7 @@ def status() -> dict:
         "has_screenshots": _real(settings.hexomatic_api_key),
         "has_creative": _real(settings.fal_key),
         "has_tiktok": _real(settings.apify_token),
+        "has_airtable": _real(settings.airtable_pat) and _real(settings.airtable_base_id),
         "auth_required": bool(_access_password()),
         "model": settings.model,
         "default_country": settings.default_country,

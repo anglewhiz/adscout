@@ -180,6 +180,43 @@ TOOLS: list[dict] = [
         },
     },
     {
+        "name": "fetch_mined_problems",
+        "description": (
+            "Read the user's own Reddit problem-mining base (their Make.com scraper's "
+            "Airtable output): real buyer complaints, pain statements and workarounds "
+            "in the buyers' exact words. Use for SaaS-idea validation and offer/copy "
+            "grounding — quote the language verbatim as buyer_language evidence. "
+            "Fast (~2s). Pass a niche/topic query to filter; matched=0 with fallback "
+            "rows means the corpus hasn't mined this niche yet — report that honestly."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Niche/topic terms to filter by, e.g. 'landlord paperwork'."},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 30,
+                          "description": "Max rows (default 15)."},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "check_domain_availability",
+        "description": (
+            "Check whether candidate product/domain names are registered (registry "
+            "RDAP lookup — free, ~1s each, up to 10). Use for the validator's name "
+            "check or when the user asks about naming. 'available' is a strong signal "
+            "but NOT a purchase guarantee or trademark clearance — always say so."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "domains": {"type": "array", "items": {"type": "string"},
+                            "description": "Full domains to check, e.g. ['leasepilot.com','leasepilot.io']."},
+            },
+            "required": ["domains"],
+        },
+    },
+    {
         "name": "search_tiktok_shop",
         "description": (
             "TikTok Shop COMMERCE data for keyword(s): products with units sold, sale "
@@ -347,7 +384,8 @@ TOOLS: list[dict] = [
 
 def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *,
              default_country: str = "US", meta=None, moz=None, shots=None,
-             creative=None, tiktok=None, products=None) -> dict:
+             creative=None, tiktok=None, products=None, mined=None,
+             domains=None) -> dict:
     """Execute a tool call and return the raw JSON result.
 
     SpyFu (Google Search) tools use ``client``; Meta (Facebook/Instagram) tools
@@ -356,6 +394,26 @@ def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *,
     """
     country = tool_input.get("country", default_country)
     limit = tool_input.get("limit", 20)
+
+    # -- Reddit mining base (validator evidence) ----------------------------
+    if tool_name == "fetch_mined_problems":
+        if mined is None:
+            return {"error": "The Reddit mining base is not available in this run "
+                             "(set AIRTABLE_PAT and AIRTABLE_BASE_ID to enable it)."}
+        try:
+            return mined.fetch(tool_input.get("query", ""),
+                               limit=tool_input.get("limit", 15))
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    # -- Domain availability (name check) -----------------------------------
+    if tool_name == "check_domain_availability":
+        if domains is None:
+            return {"error": "Domain checking is not available in this run."}
+        try:
+            return domains.check(tool_input["domains"])
+        except Exception as exc:
+            return {"error": str(exc)}
 
     # -- TikTok (Shop commerce + ad library) -------------------------------
     if tool_name in ("search_tiktok_shop", "search_tiktok_ads"):

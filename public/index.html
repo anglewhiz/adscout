@@ -388,6 +388,7 @@ const EXAMPLES = [
   "How are people running ads in the dog food niche?",
   "Is anyone spending big on 'meal kit' ads?",
   "Find keyword opportunities in the dog training niche",
+  "Validate this SaaS idea: lease-paperwork assistant for self-managing landlords",
   "Find keyword opportunities for meal kits and recommend a content plan as JSON",
   "What landing page is Factor sending their Facebook ads to? Show me it.",
   "Is nutriketo.com a real operator or a dead funnel?",
@@ -459,6 +460,7 @@ function updateStatusLine() {
     ["Google", CONFIG.has_provider],
     ["Meta", CONFIG.has_meta],
     ["TikTok", CONFIG.has_tiktok],
+    ["Reddit", CONFIG.has_airtable],
     ["Moz", CONFIG.has_moz],
     ["Screens", CONFIG.has_screenshots],
     ["Creative", CONFIG.has_creative],
@@ -962,6 +964,166 @@ function salvageResearch(text) {
   return null;
 }
 
+// --- SaaS-idea validation report ------------------------------------------
+const VERDICT_CLASS = { BUILD: "supported", TEST: "mixed", REVISE: "inconclusive", AVOID: "refuted" };
+
+function validationToMarkdown(v) {
+  const L = [], idea = v.idea || {}, rec = v.recommendation || {}, wedge = v.wedge || {}, mvp = v.mvp || {};
+  const row = a => "| " + a.join(" | ") + " |";
+  L.push(`# Idea Validation — ${idea.one_liner || ""}`.trim());
+  if (rec.verdict) L.push(`**Verdict: ${rec.verdict}**${rec.confidence != null ? ` _(confidence ${rec.confidence})_` : ""}\n\n${rec.rationale || ""}`);
+  L.push("## Idea Definition");
+  [["Buyer","buyer"],["Trigger","trigger"],["Job","job"],["Current workaround","current_workaround"],["Promised outcome","promised_outcome"]]
+    .forEach(([l,k]) => { if (idea[k]) L.push(`- **${l}:** ${idea[k]}`); });
+  if (has(v.demand)) {
+    L.push("## Demand Signals");
+    L.push(row(["Cluster","Keywords","Vol","CPC","Comp","Signal"])); L.push(row(Array(6).fill("---")));
+    v.demand.forEach(d => L.push(row([d.cluster || "", (d.keywords || []).join(", "), d.monthly_volume ?? "—",
+      d.cpc == null ? "—" : "$" + d.cpc, d.paid_competitors ?? "—", String(d.signal || "").replace(/\|/g, "/")])));
+  }
+  if (has(v.buyer_language)) { L.push("## Buyer Language (mined)"); v.buyer_language.forEach(b =>
+    L.push(`- "${b.quote}"${b.source ? ` — _${b.source}_` : ""}${b.signal ? ` (${b.signal})` : ""}`)); }
+  if (has(v.competitors)) {
+    L.push("## Competitors & Workarounds");
+    L.push(row(["Name","Offering","Price","Strength","Gap"])); L.push(row(Array(5).fill("---")));
+    v.competitors.forEach(c => L.push(row([c.name || "", c.offering || "", c.price ?? "—", c.strength || "", c.gap || ""])));
+  }
+  if (has(v.revenue_evidence)) { L.push("## Revenue Evidence"); v.revenue_evidence.forEach(x => L.push(`- ${asText(x)}`)); }
+  if (wedge.statement) {
+    L.push("## The Wedge");
+    L.push(`> ${wedge.statement}`);
+    if (wedge.entry_offer) L.push(`- **Entry offer:** ${wedge.entry_offer}`);
+    if (wedge.segment) L.push(`- **Segment:** ${wedge.segment}`);
+    if (wedge.monetization_shape) L.push(`- **Monetization:** ${wedge.monetization_shape}${wedge.monetization_reasoning ? ` — ${wedge.monetization_reasoning}` : ""}`);
+  }
+  if (mvp.core_job) {
+    L.push("## MVP Boundary");
+    L.push(`- **Core job:** ${mvp.core_job}`);
+    if (has(mvp.inputs)) L.push(`- **Inputs:** ${mvp.inputs.join(", ")}`);
+    if (mvp.output) L.push(`- **Output:** ${mvp.output}`);
+    if (has(mvp.exclusions)) L.push(`- **Not in v1:** ${mvp.exclusions.join(", ")}`);
+    if (mvp.manual_fallback) L.push(`- **Manual fallback:** ${mvp.manual_fallback}`);
+  }
+  if (has(v.tests)) {
+    L.push("## Tests to Run (human)");
+    L.push(row(["Method","Asset","Primary action","Continue if","Stop if"])); L.push(row(Array(5).fill("---")));
+    v.tests.forEach(t => L.push(row([t.method || "", t.asset || "", t.primary_action || "", t.continue_rule || "", t.stop_rule || ""])));
+  }
+  if (has(v.risks)) { L.push("## Risk Register"); v.risks.forEach(r =>
+    L.push(`- **[${r.severity || "?"} / ${r.type || "risk"}]** ${r.risk}${r.mitigation ? ` — _${r.mitigation}_` : ""}`)); }
+  if (has(v.name_check)) {
+    L.push("## Name Check (registration screening only — not trademark clearance)");
+    v.name_check.forEach(n => L.push(`- ${n.domain || n.name}: **${n.status || "?"}**`));
+  }
+  if (has(v.next_actions)) {
+    L.push("## Next Actions");
+    v.next_actions.slice().sort((a, b) => (a.priority || 0) - (b.priority || 0))
+      .forEach((a, i) => L.push(`${i + 1}. **${a.task || ""}** — ${a.reason || ""}`));
+  }
+  return L.join("\n\n") + "\n";
+}
+
+function renderValidation(v) {
+  const wrap = document.createElement("div");
+  const esc = s => escapeHtml(String(s ?? ""));
+  const idea = v.idea || {}, rec = v.recommendation || {}, wedge = v.wedge || {}, mvp = v.mvp || {};
+  const slug = (idea.one_liner || "idea").toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "idea";
+
+  wrap.appendChild(sectionHead("Idea validation report"));
+
+  const actions = el("div", "json-actions");
+  const mkBtn = (label, fn) => { const b = el("button", "btn-sm", label); b.type = "button"; b.onclick = fn; return b; };
+  const pretty = JSON.stringify(v, null, 2);
+  actions.appendChild(mkBtn("Copy JSON", (e) => {
+    navigator.clipboard.writeText(pretty).then(() => { e.target.textContent = "Copied ✓"; setTimeout(() => e.target.textContent = "Copy JSON", 1500); });
+  }));
+  actions.appendChild(mkBtn("Download JSON", () => download(`validation-${slug}.json`, pretty, "application/json")));
+  actions.appendChild(mkBtn("Download MD", () => download(`validation-${slug}.md`, validationToMarkdown(v), "text/markdown")));
+  wrap.appendChild(actions);
+
+  if (rec.verdict) {
+    const vw = el("div", "verdict-wrap");
+    vw.innerHTML = `<span class="verdict ${VERDICT_CLASS[String(rec.verdict).toUpperCase()] || "inconclusive"}">Verdict: ${esc(rec.verdict)}${rec.confidence != null ? ` · confidence ${esc(rec.confidence)}` : ""}</span>`;
+    wrap.appendChild(vw);
+    if (rec.rationale) wrap.appendChild(el("div", "rep-p", esc(rec.rationale)));
+  }
+  let h = "";
+  if (idea.one_liner) h += `<div class="top">◆ ${esc(idea.one_liner)}</div>`;
+  const parts = [["Buyer", idea.buyer], ["Trigger", idea.trigger], ["Job", idea.job],
+                 ["Workaround", idea.current_workaround], ["Outcome", idea.promised_outcome]]
+    .filter(p => p[1]).map(([l, x]) => `<strong>${l}:</strong> ${esc(x)}`);
+  if (parts.length) h += `<div class="rec">${parts.join(" · ")}</div>`;
+  if (h) wrap.appendChild(el("div", "research-head", h));
+
+  const table = (title, cols, rows, mapRow) => {
+    if (!has(rows)) return;
+    wrap.appendChild(el("div", "rep-h", title));
+    const tw = el("div", "tbl-wrap");
+    let t = '<table class="kw-table"><thead><tr>' + cols.map(c => `<th>${c}</th>`).join("") + "</tr></thead><tbody>";
+    rows.forEach(r => { t += "<tr>" + mapRow(r).map(c => `<td>${c}</td>`).join("") + "</tr>"; });
+    tw.innerHTML = t + "</tbody></table>";
+    wrap.appendChild(tw);
+  };
+  const list = (title, arr, fmt, warn) => {
+    if (!has(arr)) return;
+    wrap.appendChild(el("div", "rep-h", title));
+    const ul = el("ul", "rep-list" + (warn ? " warn" : ""));
+    arr.forEach(x => ul.appendChild(el("li", null, fmt(x))));
+    wrap.appendChild(ul);
+  };
+
+  table("Demand signals", ["Cluster","Keywords","Vol","CPC","Comp","Signal"], v.demand, d => [
+    `<span class="kw">${esc(d.cluster)}</span>`, esc((d.keywords || []).join(", ")),
+    fmtNum(d.monthly_volume), d.cpc == null ? "—" : "$" + esc(d.cpc),
+    fmtNum(d.paid_competitors), esc(d.signal || "—")]);
+  list("Buyer language (from your mining base)", v.buyer_language,
+       b => `"${esc(b.quote)}"${b.source ? ` — <em>${esc(b.source)}</em>` : ""}${b.signal ? ` (${esc(b.signal)})` : ""}`);
+  table("Competitors & workarounds", ["Name","Offering","Price","Strength","Gap"], v.competitors, c => [
+    `<strong>${esc(c.name)}</strong>`, esc(c.offering || "—"), c.price == null ? "—" : esc(c.price),
+    esc(c.strength || "—"), esc(c.gap || "—")]);
+  list("Revenue evidence (who pays)", v.revenue_evidence, x => esc(asText(x)));
+
+  if (wedge.statement || mvp.core_job) {
+    wrap.appendChild(el("div", "rep-h", "Wedge & MVP"));
+    const g = el("div", "rep-cards");
+    if (wedge.statement) {
+      let inner = `<div class="t">The wedge</div><div class="d">${esc(wedge.statement)}</div>`;
+      if (wedge.entry_offer) inner += `<div class="u">Entry offer: ${esc(wedge.entry_offer)}</div>`;
+      if (wedge.monetization_shape) inner += `<div class="u">Monetization: ${esc(wedge.monetization_shape)}</div>`;
+      g.appendChild(el("div", "rep-card", inner));
+    }
+    if (mvp.core_job) {
+      let m = `<div class="t">MVP boundary</div><div class="d">${esc(mvp.core_job)}</div>`;
+      if (mvp.output) m += `<div class="u">Output: ${esc(mvp.output)}</div>`;
+      if (has(mvp.exclusions)) m += `<div class="u">Not in v1: ${esc(mvp.exclusions.join(", "))}</div>`;
+      g.appendChild(el("div", "rep-card", m));
+    }
+    wrap.appendChild(g);
+  }
+
+  table("Tests to run (human step)", ["Method","Asset","Action that counts","Continue if","Stop if"], v.tests, t => [
+    esc(t.method), esc(t.asset || "—"), esc(t.primary_action || "—"), esc(t.continue_rule || "—"), esc(t.stop_rule || "—")]);
+  list("Risk register", v.risks,
+       r => `<strong>[${esc(r.severity || "?")} · ${esc(r.type || "risk")}]</strong> ${esc(r.risk)}${r.mitigation ? ` — <em>${esc(r.mitigation)}</em>` : ""}`, true);
+  table("Name check (registration only — not trademark clearance)", ["Domain","Status"], v.name_check, n => [
+    esc(n.domain || n.name), (String(n.status).toLowerCase() === "available")
+      ? `<span class="kw-score">available</span>` : esc(n.status || "?")]);
+  if (has(v.next_actions)) {
+    wrap.appendChild(el("div", "rep-h", "Next actions"));
+    const ol = el("ol", "rep-list");
+    v.next_actions.slice().sort((a, b) => (a.priority || 0) - (b.priority || 0))
+      .forEach(a => ol.appendChild(el("li", null, `<strong>${esc(a.task)}</strong> — ${esc(a.reason || "")}`)));
+    wrap.appendChild(ol);
+  }
+
+  const det = el("details", "json-details");
+  det.appendChild(el("summary", null, "Raw JSON object"));
+  const pre = el("pre", "json-block"); pre.textContent = pretty;
+  det.appendChild(pre);
+  wrap.appendChild(det);
+  return wrap;
+}
+
 function buildResultCard(data) {
   const card = document.createElement("div");
   card.className = "card";
@@ -973,7 +1135,9 @@ function buildResultCard(data) {
     card.appendChild(b);
   }
 
-  if (data.research) {
+  if (data.validation) {
+    card.appendChild(renderValidation(data.validation));
+  } else if (data.research) {
     card.appendChild(renderResearch(data.research));
   } else if (/"research_summary"/.test(data.answer || "")) {
     // Research mode was requested but the server didn't attach a parsed object
