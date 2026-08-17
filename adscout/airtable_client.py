@@ -88,6 +88,14 @@ class MinedProblemsClient:
         for key, value in fields.items():
             if value in (None, "", [], {}):
                 continue
+            # Computed/formula/AI fields arrive as dicts; unwrap good values and
+            # skip error states ({'state': 'error', 'errorType': ...}).
+            if isinstance(value, dict):
+                if value.get("state") == "error":
+                    continue
+                value = value.get("value", value.get("text", ""))
+                if value in (None, "", [], {}):
+                    continue
             low = key.lower()
             sval = ", ".join(map(str, value)) if isinstance(value, list) else str(value)
             if any(h in low for h in _BUCKET_HINTS) and _normalise_bucket(sval):
@@ -127,7 +135,9 @@ class MinedProblemsClient:
             params = {"pageSize": 100}
             if offset:
                 params["offset"] = offset
-            r = self._http.get(f"{API}/{self.base_id}/{table}", params=params)
+            from urllib.parse import quote
+            r = self._http.get(f"{API}/{self.base_id}/{quote(str(table))}",
+                               params=params)
             if r.status_code in (401, 403):
                 raise AirtableError(
                     f"Airtable {r.status_code} — check AIRTABLE_PAT (needs "
