@@ -70,6 +70,9 @@ class Settings:
     airtable_pat: str | None = None
     airtable_base_id: str | None = None
     airtable_table: str | None = None
+    # Google Sheet holding the Reddit mining output (link-viewable; keyless CSV).
+    gsheet_id: str | None = None
+    gsheet_tab: str | None = None
 
     @classmethod
     def load(cls) -> "Settings":
@@ -94,6 +97,8 @@ class Settings:
             airtable_pat=os.getenv("AIRTABLE_PAT") or os.getenv("AIRTABLE_API_KEY"),
             airtable_base_id=os.getenv("AIRTABLE_BASE_ID"),
             airtable_table=os.getenv("AIRTABLE_TABLE"),
+            gsheet_id=os.getenv("GSHEET_ID"),
+            gsheet_tab=os.getenv("GSHEET_TAB"),
         )
 
     def has_provider_auth(self) -> bool:

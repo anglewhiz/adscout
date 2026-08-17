@@ -26,6 +26,7 @@ from .config import Settings
 from .endpoints import COUNTRY_CODES
 from .airtable_client import MinedProblemsClient
 from .domain_client import DomainClient
+from .sheets_client import SheetsMinedClient
 from .meta_client import MetaAdLibraryClient
 from .moz_client import MozClient
 from .product_client import ProductPageClient
@@ -300,6 +301,13 @@ class _DemoAnthropic:
 # Public entry points used by the HTTP layers.
 # --------------------------------------------------------------------------
 
+def _make_mined_client(settings, mock: bool):
+    """Pick the Reddit-mining evidence source: Google Sheet first, else Airtable."""
+    if _real(settings.gsheet_id):
+        return SheetsMinedClient(settings, mock=mock)
+    return MinedProblemsClient(settings, mock=mock)
+
+
 def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
                  password: str = "", history: list | None = None) -> dict:
     """Run one analysis and return a JSON-serializable result dict."""
@@ -343,7 +351,7 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
             CreativeClient(settings, mock=data_mock) as creative, \
             TikTokClient(settings, mock=data_mock) as tiktok, \
             ProductPageClient(settings, mock=data_mock) as products, \
-            MinedProblemsClient(settings, mock=data_mock) as mined, \
+            _make_mined_client(settings, data_mock) as mined, \
             DomainClient(settings, mock=data_mock) as domains:
         analyst = Analyst(
             client,
@@ -461,6 +469,8 @@ def status() -> dict:
         "has_creative": _real(settings.fal_key),
         "has_tiktok": _real(settings.apify_token),
         "has_airtable": _real(settings.airtable_pat) and _real(settings.airtable_base_id),
+        "has_mining": (_real(settings.gsheet_id)
+                       or (_real(settings.airtable_pat) and _real(settings.airtable_base_id))),
         "auth_required": bool(_access_password()),
         "model": settings.model,
         "default_country": settings.default_country,

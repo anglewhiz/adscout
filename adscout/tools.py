@@ -398,8 +398,9 @@ def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *,
     # -- Reddit mining base (validator evidence) ----------------------------
     if tool_name == "fetch_mined_problems":
         if mined is None:
-            return {"error": "The Reddit mining base is not available in this run "
-                             "(set AIRTABLE_PAT and AIRTABLE_BASE_ID to enable it)."}
+            return {"error": "The Reddit mining corpus is not available in this run "
+                             "(set GSHEET_ID — or AIRTABLE_PAT + AIRTABLE_BASE_ID — "
+                             "to enable it)."}
         try:
             return mined.fetch(tool_input.get("query", ""),
                                limit=tool_input.get("limit", 15))

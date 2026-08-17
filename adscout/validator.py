@@ -17,7 +17,11 @@ standard "## Answer / ## Evidence / ## Verdict" format. Instead:
 
 1. Gather evidence:
    - fetch_mined_problems for the niche — real buyer complaints/workarounds
-     from the user's Reddit mining base (their own research corpus).
+     from the user's Reddit mining corpus. Rows may carry a bucket tag; route
+     them: pain -> buyer_language quotes; buyer_intent -> demand/willingness-
+     to-pay evidence (note it in the row's signal field); transition_fear ->
+     objections that shape the wedge, tests and risks; comparison ->
+     competitor gaps. Put the bucket in each quote's "signal".
    - research_keywords across search types, using trigger terms that reveal
      intent: "alternative", "vs", "replacement", "template", "calculator",
      "integration", "[job] software", "[solution] for [role]". Capture volume,
