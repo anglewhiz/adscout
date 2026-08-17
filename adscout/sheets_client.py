@@ -25,9 +25,11 @@ import httpx
 from .airtable_client import _mock_fetch, _normalise_bucket  # shared corpus shape
 
 _TEXT_HINTS = ("problem", "pain", "quote", "statement", "complaint", "title",
-               "body", "text", "summary", "post", "content", "selftext")
-_SOURCE_HINTS = ("subreddit", "source", "url", "link", "permalink", "thread")
+               "body", "text", "summary", "post", "selftext")
+_SOURCE_HINTS = ("subreddit", "source", "url", "link", "permalink", "thread",
+                 "community")
 _BUCKET_HINTS = ("bucket", "category", "type", "evidence")
+_META_KEEP = ("upvote", "vote", "comment", "score", "date", "flair", "search")
 
 
 class SheetsError(RuntimeError):
@@ -44,14 +46,21 @@ def rows_from_csv(text: str) -> list[dict]:
             if not key or value in (None, ""):
                 continue
             low = key.lower()
+            sval = str(value)
             if any(h in low for h in _BUCKET_HINTS) and _normalise_bucket(value):
                 bucket = _normalise_bucket(value)
-            elif any(h in low for h in _TEXT_HINTS):
-                text_parts.append(str(value))
             elif any(h in low for h in _SOURCE_HINTS):
-                source = source or str(value)[:120]
-            elif len(str(value)) < 60:
-                meta[key] = str(value)
+                if "id" in low.replace("hidden", ""):  # communityId etc. are not names
+                    continue
+                # community/subreddit name beats a bare URL for readability
+                if source is None or (not sval.startswith("http")
+                                      and ("communityname" in low.replace("_", "")
+                                           or "subreddit" in low)):
+                    source = sval[:120]
+            elif any(h in low for h in _TEXT_HINTS) and not sval.startswith("http"):
+                text_parts.append(sval)
+            elif any(h in low for h in _META_KEEP) and len(sval) < 60:
+                meta[key] = sval
         if not text_parts:  # fall back to the longest cell
             strings = [str(v) for v in rec.values() if v]
             if strings:
