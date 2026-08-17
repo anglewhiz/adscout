@@ -27,10 +27,27 @@ API = "https://api.airtable.com/v0"
 
 # Heuristic field buckets, matched case-insensitively as substrings.
 _TEXT_HINTS = ("problem", "pain", "quote", "statement", "complaint", "title",
-               "body", "text", "summary", "post")
+               "body", "text", "summary", "post", "content", "selftext")
 _SOURCE_HINTS = ("subreddit", "source", "url", "link", "permalink", "thread")
-_META_HINTS = ("niche", "keyword", "topic", "category", "score", "upvote",
-               "frequency", "date", "created")
+_META_HINTS = ("niche", "keyword", "topic", "score", "upvote",
+               "frequency", "date", "created", "search")
+_BUCKET_HINTS = ("bucket", "category", "type", "evidence")
+
+# The user's mining taxonomy (A_pain_mining / B_buyer_intent /
+# C_transition_fear / D_comparison), normalised for the validator's routing.
+_BUCKET_NORMALISE = (
+    ("pain", "pain"), ("buyer", "buyer_intent"), ("intent", "buyer_intent"),
+    ("fear", "transition_fear"), ("transition", "transition_fear"),
+    ("compar", "comparison"),
+)
+
+
+def _normalise_bucket(value) -> str | None:
+    low = str(value or "").lower()
+    for needle, label in _BUCKET_NORMALISE:
+        if needle in low:
+            return label
+    return None
 
 
 class AirtableError(RuntimeError):
@@ -67,13 +84,15 @@ class MinedProblemsClient:
 
     @staticmethod
     def _map_row(fields: dict) -> dict:
-        text_parts, source, meta = [], None, {}
+        text_parts, source, bucket, meta = [], None, None, {}
         for key, value in fields.items():
             if value in (None, "", [], {}):
                 continue
             low = key.lower()
             sval = ", ".join(map(str, value)) if isinstance(value, list) else str(value)
-            if any(h in low for h in _TEXT_HINTS):
+            if any(h in low for h in _BUCKET_HINTS) and _normalise_bucket(sval):
+                bucket = _normalise_bucket(sval)
+            elif any(h in low for h in _TEXT_HINTS):
                 text_parts.append(sval)
             elif any(h in low for h in _SOURCE_HINTS):
                 source = source or sval[:120]
@@ -83,8 +102,12 @@ class MinedProblemsClient:
             strings = [str(v) for v in fields.values() if isinstance(v, str)]
             if strings:
                 text_parts = [max(strings, key=len)]
-        return {"text": " — ".join(text_parts)[:400] or None,
-                "source": source, **({"meta": meta} if meta else {})}
+        row = {"text": " — ".join(text_parts)[:400] or None, "source": source}
+        if bucket:
+            row["bucket"] = bucket
+        if meta:
+            row["meta"] = meta
+        return row
 
     # -- public API --------------------------------------------------------
 

@@ -22,30 +22,16 @@ import os
 
 import httpx
 
-from .airtable_client import _mock_fetch  # same corpus shape in demo/mock
+from .airtable_client import _mock_fetch, _normalise_bucket  # shared corpus shape
 
 _TEXT_HINTS = ("problem", "pain", "quote", "statement", "complaint", "title",
                "body", "text", "summary", "post", "content", "selftext")
 _SOURCE_HINTS = ("subreddit", "source", "url", "link", "permalink", "thread")
 _BUCKET_HINTS = ("bucket", "category", "type", "evidence")
 
-_BUCKET_NORMALISE = (
-    ("pain", "pain"), ("buyer", "buyer_intent"), ("intent", "buyer_intent"),
-    ("fear", "transition_fear"), ("transition", "transition_fear"),
-    ("comparison", "comparison"), ("compar", "comparison"),
-)
-
 
 class SheetsError(RuntimeError):
     """Raised for non-retryable Google Sheets errors."""
-
-
-def _normalise_bucket(value: str) -> str | None:
-    low = (value or "").lower()
-    for needle, label in _BUCKET_NORMALISE:
-        if needle in low:
-            return label
-    return None
 
 
 def rows_from_csv(text: str) -> list[dict]:
