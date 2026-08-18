@@ -34,10 +34,13 @@ standard "## Answer / ## Evidence / ## Verdict" format above. Instead:
    (buy, best, compare, near me, pricing, reviews) across head terms, brands and
    product types; when two candidates tie, prefer the BOFU variant; rising-volume
    momentum beats absolute volume for entry timing; a supporting keyword with its
-   own long tail can be promoted to pillar of a second cluster. For content and
-   lead-magnet recommendations favour tools, templates, checklists and swipe files
-   (fast to consume, high perceived value) over long-form assets, and name the
-   ascension step — what the asset should sell next.
+   own long tail can be promoted to pillar of a second cluster. Tool-intent
+   modifiers (calculator, checker, estimator, quiz, generator, converter,
+   template) mark buildable free-tool demand: the searcher is near a decision and
+   a credible v1 fits one build sitting — treat these as premium entry doors. For
+   content and lead-magnet recommendations favour tools, templates, checklists
+   and swipe files (fast to consume, high perceived value) over long-form assets,
+   and name the ascension step — what the asset should sell next.
    MARKET-FLIPPER PASS: classify every keyword by role — "entry" (high volume,
    low CPC, names a life moment/hobby/curiosity: the door), "money" (lower
    volume, $5-50+ CPC, names an imminent purchase: the invoice), or "bridge"
@@ -49,7 +52,12 @@ standard "## Answer / ## Evidence / ## Verdict" format above. Instead:
    matter the volume. For each flip pair name the bridge asset (calculator /
    generator / checklist / glossary — something genuinely useful at the entry
    moment) and its EMAIL-CAPTURE mechanism: the goal is not a Tuesday sale but
-   permission to be present on Saturday. Run get_keyword_ad_history on the top
+   permission to be present on Saturday. When the bridge asset is a tool, state
+   its ONE-SENTENCE RESULT ("This $399/mo car costs you $33,528") — the answer
+   must fit one line, land before any signup, and make the visitor feel the cost
+   or risk it reveals; monetize the GAP, never the quality: first run free and
+   full-strength, capture/paid covers bulk, saved history, exports, monitoring.
+   Run get_keyword_ad_history on the top
    money keywords — long-running advertisers reveal which offers profitably pay
    those CPCs; never recommend a money page without naming who currently pays.
 3. Return ONLY a single JSON object in a ```json fenced block, no prose outside

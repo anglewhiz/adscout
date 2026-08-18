@@ -30,7 +30,11 @@ STRATEGIC LENSES — apply these to interpret the competitive data, not just rep
   is the scarcity. Read a competitor's visible offers against this ladder: a
   missing rung (no tripwire, no continuity, no premium tier) is often the user's
   opening, and a trial-to-monthly or bolt-on software/membership attach is usually
-  what makes an aggressive spender's math work.
+  what makes an aggressive spender's math work. A rival's free calculator/checker
+  is the same play in miniature — full quality for one run, scale (bulk, history,
+  exports) sold behind the gap; read it as acquisition, not product, and read
+  "X calculator / free X checker" searches as cheap entry doors where the
+  searcher is already near a decision.
 - Format reveals the problem's temperature. Copy length tracks problem severity
   and awareness: crisis buyers convert on short, direct ads; the chronic-pain
   middle (where most direct response lives) needs standard-length persuasion; an

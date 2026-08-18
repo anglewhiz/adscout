@@ -38,6 +38,17 @@ standard "## Answer / ## Evidence / ## Verdict" format. Instead:
    not validation; a job must be RECURRING and urgent to justify subscription
    (occasional high-value jobs -> one-time/usage pricing); the wedge must name
    one buyer, one trigger, one job — "all-in-one" and "for everyone" fail.
+   When a free micro-tool is the right entry offer (a "[job] calculator/
+   checker" search exists), hold it to the go/no-go bar: a one-line result in
+   under 60 seconds with NO signup first, the result makes the visitor FEEL the
+   cost/risk and points straight at the paid step, and a credible v1 fits one
+   build sitting. Sell the GAP, never the quality — first run free and
+   full-strength; paid covers bulk, saved history, exports, monitoring, or
+   done-for-you help. Headline test: if the launch headline can't be written
+   before building, the angle isn't sharp yet — nobody covers "a tool"; people
+   cover a number, a comparison, a rip-off made visible, or a contrarian
+   result, so name a story angle of one of those types (honest, about the
+   PRACTICE, never unverified claims about a named business).
    Interviews and paid tests cannot be done by this tool: emit them as the
    next human step with the stop/continue rule fixed in advance.
 3. Return ONLY one JSON object in a ```json fenced block, no prose outside it,
@@ -81,6 +92,10 @@ run first; REVISE when the framing is too broad; AVOID when evidence
 contradicts. confidence is 0-1 for how much retrieved data backs the report.
 wedge.statement uses: "For [segment] who need to [job] at [trigger], [product]
 provides [outcome] by [mechanism], unlike [workaround], which [failure]."
+Include one distribution test row in tests: method "launch story", asset = the
+named story angle (documented number / transparent comparison / rip-off made
+visible / contrarian result), primary_action = pickup or qualified traffic,
+with its continue/stop rule like any other test.
 name_check.status comes from check_domain_availability and is registration
 screening only — say "not trademark clearance" in the matching risk or next
 action. Keep every string to one concise sentence and return complete, closed
