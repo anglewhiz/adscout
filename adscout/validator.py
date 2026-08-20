@@ -41,6 +41,11 @@ standard "## Answer / ## Evidence / ## Verdict" format. Instead:
    not validation; a job must be RECURRING and urgent to justify subscription
    (occasional high-value jobs -> one-time/usage pricing); the wedge must name
    one buyer, one trigger, one job — "all-in-one" and "for everyone" fail.
+   Run the resilience math in monetization_reasoning: purchase COUNT is the
+   biggest lever on LTV:CAC (a 25:1 business shrugs off a 25% ad-cost rise, a
+   4:1 business is wounded), break-even CPL = first-transaction value x margin
+   x close rate, and ~$20 gross profit per customer is an AVOID-grade
+   business-model flaw no acquisition tactic can save.
    When a free micro-tool is the right entry offer (a "[job] calculator/
    checker" search exists), hold it to the go/no-go bar: a one-line result in
    under 60 seconds with NO signup first, the result makes the visitor FEEL the

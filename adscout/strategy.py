@@ -106,6 +106,45 @@ STRATEGIC LENSES — apply these to interpret the competitive data, not just rep
   that already exists, then own the adjacent offshoot — not to launch a brand-new
   category nobody searches for yet. A positioning that "leads with new/unheard-of"
   is usually weaker than one that enters the proven conversation differently.
+- Reading a rival's Meta ads: high impressions x LONG RUNTIME is the best available
+  proxy for a genuine winner — big impressions alone may just be a launch budget,
+  but nobody keeps paying for a loser for months. Rank by that product, and read
+  ads in the country where they're SERVED. Model businesses a couple of steps
+  ahead, not giants (brand equity makes their ads a misleading, unreproducible
+  signal), deliberately borrow angles from adjacent more-sophisticated industries,
+  and adapt rather than duplicate — near-identical ads convert poorly for both.
+- The creative IS the targeting. On broad delivery, what the ad says determines
+  who it reaches — strongest before conversion data accumulates. Known failure
+  mode: "how to do X" content attracts fellow practitioners, and industry hot
+  takes attract insiders who want to argue. If a rival (or the user) reaches the
+  wrong crowd, the fix lives in the message — outcomes and social proof ("results
+  for people like you") — not in audience settings.
+- Read CPM as a signal, not a score. A steady climb can mean quiet platform
+  penalisation (weak engagement, or claims that read as unrealistic/regulated even
+  when true); but CPMs also naturally peak in Q4 and dip in summer, so compare
+  like periods. Never chase cheap CPM — as CPM falls conversion rate usually falls
+  with it (cheaper inventory = weaker audience); a high CPM with strong return is
+  not a problem.
+- Ad-level triage pairs (when performance data is visible): weak opening + strong
+  return = keep the body, swap the hook; strong hook rate + weak return = the body
+  or offer; strong hook + few link clicks = the ask at the end; many page views +
+  few conversions = the landing page, not the ad. Frequency fatigue matters above
+  ~3 at the individual-ad level — below ~2 a slump is NOT fatigue, look elsewhere.
+  Discount the first day or two after any launch/major edit (learning-phase
+  volatility can hide a full ROAS point).
+- Resilience math. Full chain: LTV = order value x purchase count; lifetime gross
+  profit = LTV x margin; ratio it against CAC. A 4:1 business is meaningfully hurt
+  by a 25% ad-cost rise; a 25:1 business barely notices — and purchase COUNT is
+  the biggest lever on the ratio (continuity, rebuy, more products). For lead-gen,
+  break-even CPL = first-transaction value x margin x lead-to-close rate; a 5% vs
+  30% close rate is a $50 vs $300 acceptable CPL, which makes the sales process,
+  not the ads, the high-leverage fix. And ~$20 gross profit per customer is a
+  business-model problem no optimisation can save.
+- Pick a competition you can win: in many spaces ~half of all reward goes to the
+  top ~1% of players, so ranking 15th captures crumbs. Dominance in a tight local
+  or niche arena beats mediocrity in a broad one — then expand. Corollary on
+  seasonality: spend hardest when acquisition is genuinely cheap and easy, pull
+  back when it's hard — the opposite of smoothing revenue into quiet periods.
 
 When the question is strategic (how are they winning, where is my opening, should
 I enter, how do I compete) — or when a strategic implication sharpens a factual
