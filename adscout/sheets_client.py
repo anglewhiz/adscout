@@ -124,6 +124,68 @@ class SheetsMinedClient:
         return {"query": query, "matched": len(rows), "scanned": len(rows),
                 "results": rows[:limit]}
 
+    # -- synthesized insights (the pipeline's own analysis tabs) -------------
+
+    def _tab_csv(self, tab: str) -> str:
+        url = (f"https://docs.google.com/spreadsheets/d/{self.sheet_id}"
+               f"/gviz/tq?tqx=out:csv&sheet={httpx.QueryParams({'s': tab})['s']}")
+        r = self._http.get(url)
+        if r.status_code != 200 or "<html" in r.text[:200].lower():
+            raise SheetsError(f"Could not read tab '{tab}' (HTTP {r.status_code}).")
+        return r.text
+
+    def insights(self, query: str = "", *, limit: int = 6) -> dict:
+        """Synthesized insight briefs + activation angles from the mining pipeline.
+
+        Reads the analysis tabs the user's Make scenario writes downstream of the
+        raw scrape: per-run insight briefs (root causes, failed solutions, belief
+        gaps, high-intent signals, opportunity angles) and generated activation
+        material (hooks / angles / objections / CTAs per niche).
+        """
+        limit = max(1, min(int(limit or 6), 10))
+        if self.mock:
+            return _mock_insights(query, limit)
+        if not self.sheet_id:
+            raise SheetsError(
+                "The mining sheet is not configured. Set GSHEET_ID to enable "
+                "insight briefs.")
+
+        insights_tab = os.getenv("GSHEET_INSIGHTS_TAB", "Sheet2")
+        activation_tab = os.getenv("GSHEET_ACTIVATION_TAB", "Activation")
+        terms = [t for t in query.lower().split() if len(t) > 2]
+
+        def load(tab: str, fields: tuple, meta_fields: tuple) -> list[dict]:
+            rows = []
+            for rec in csv.DictReader(io.StringIO(self._tab_csv(tab))):
+                row = {k: str(v)[:350] for k, v in (rec or {}).items()
+                       if k in fields and v not in (None, "")}
+                row.update({k: str(v)[:60] for k, v in (rec or {}).items()
+                            if k in meta_fields and v not in (None, "")})
+                if row:
+                    rows.append(row)
+            if terms:
+                scored = []
+                for row in rows:
+                    blob = " ".join(map(str, row.values())).lower()
+                    score = sum(1 for t in terms if t in blob)
+                    if score:
+                        scored.append((score, row))
+                scored.sort(key=lambda p: -p[0])
+                rows = [r for _, r in scored]
+            return rows[:limit]
+
+        briefs = load(insights_tab,
+                      ("core_problem_statement", "root_causes", "failed_solutions",
+                       "successful_solutions", "emotional_drivers", "belief_gaps",
+                       "high_intent_signals", "opportunity_angles"),
+                      ("pain_type_analyzed", "run_date", "post_count"))
+        activation = load(activation_tab,
+                          ("hooks", "angles", "objections", "ctas"),
+                          ("niche", "pain_type", "run_date"))
+        return {"query": query, "insight_briefs": briefs, "activation": activation,
+                **({"note": "no briefs matched the query"} if terms and not briefs
+                   else {})}
+
     def close(self) -> None:
         if self._http is not None:
             self._http.close()
@@ -133,3 +195,26 @@ class SheetsMinedClient:
 
     def __exit__(self, *exc: object) -> None:
         self.close()
+
+
+def _mock_insights(query: str, limit: int) -> dict:
+    q = query or "the niche"
+    return {
+        "query": query,
+        "insight_briefs": [{
+            "core_problem_statement": f"Buyers in {q} distrust mainstream options but fear "
+                                      "DIY alternatives backfiring.",
+            "failed_solutions": "Home remedies from influencer content; cheap generic products.",
+            "belief_gaps": "Assumes 'natural' means safe; assumes premium price means efficacy.",
+            "high_intent_signals": "Asking for specific brand comparisons and 'is X worth it'.",
+            "opportunity_angles": "Evidence-based middle path between mainstream and DIY.",
+            "pain_type_analyzed": "trust_conflicts", "post_count": "70",
+        }],
+        "activation": [{
+            "hooks": f"Did my DIY {q} fix just make it worse?",
+            "angles": "Science-first without the harsh trade-offs",
+            "objections": "Is this just another overpriced 'clean' product?",
+            "ctas": "Take the 60-second check", "niche": q,
+        }],
+        "note": "sample data (demo mode)",
+    }

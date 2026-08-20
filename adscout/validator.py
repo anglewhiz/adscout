@@ -22,6 +22,9 @@ standard "## Answer / ## Evidence / ## Verdict" format. Instead:
      to-pay evidence (note it in the row's signal field); transition_fear ->
      objections that shape the wedge, tests and risks; comparison ->
      competitor gaps. Put the bucket in each quote's "signal".
+   - fetch_mined_insights for the niche — the pipeline's own synthesis layer:
+     belief gaps and objections feed the wedge and risks, failed solutions are
+     enemy/"Without"-formula material, high-intent signals are demand evidence.
    - research_keywords across search types, using trigger terms that reveal
      intent: "alternative", "vs", "replacement", "template", "calculator",
      "integration", "[job] software", "[solution] for [role]". Capture volume,

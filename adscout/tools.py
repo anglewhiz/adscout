@@ -200,6 +200,29 @@ TOOLS: list[dict] = [
         },
     },
     {
+        "name": "fetch_mined_insights",
+        "description": (
+            "Read the SYNTHESIZED output of the user's Reddit mining pipeline: per-run "
+            "insight briefs (core problem statements, root causes, failed solutions, "
+            "belief gaps, high-intent signals, opportunity angles) plus ready-made "
+            "activation material (hooks, angles, objections, CTAs per niche). This is "
+            "the pipeline's own analysis layer — richer than raw posts. Use belief "
+            "gaps/objections for wedge+offer design, failed solutions as enemy/"
+            "'Without'-formula material, high-intent signals as demand evidence, and "
+            "activation hooks to seed ad concepts. Fast (~2s). Pass a niche query to "
+            "filter; empty results mean the pipeline hasn't analyzed this niche."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Niche/topic terms, e.g. 'dental health'."},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 10,
+                          "description": "Max briefs per section (default 6)."},
+            },
+            "required": ["query"],
+        },
+    },
+    {
         "name": "check_domain_availability",
         "description": (
             "Check whether candidate product/domain names are registered (registry "
@@ -404,6 +427,18 @@ def dispatch(client: SpyFuClient, tool_name: str, tool_input: dict, *,
         try:
             return mined.fetch(tool_input.get("query", ""),
                                limit=tool_input.get("limit", 15))
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    # -- Synthesized mining insights -----------------------------------------
+    if tool_name == "fetch_mined_insights":
+        if mined is None or not hasattr(mined, "insights"):
+            return {"error": "Insight briefs are not available in this run — they "
+                             "come from the Google Sheets mining pipeline "
+                             "(set GSHEET_ID to enable them)."}
+        try:
+            return mined.insights(tool_input.get("query", ""),
+                                  limit=tool_input.get("limit", 6))
         except Exception as exc:
             return {"error": str(exc)}
 
