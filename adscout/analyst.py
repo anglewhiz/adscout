@@ -244,7 +244,9 @@ class Analyst:
         max_tokens = self.max_tokens
         if validation_mode:
             system = SYSTEM_PROMPT + "\n\n" + VALIDATOR_INSTRUCTIONS
-            max_tokens = max(self.max_tokens, 8192)
+            # 8192 truncated real reports once mined insights fattened the
+            # evidence (risks/name_check/next_actions fell off the end).
+            max_tokens = max(self.max_tokens, 16384)
         elif research_mode:
             system = (SYSTEM_PROMPT + "\n\n" + RESEARCH_INSTRUCTIONS
                       + "\n\n" + CONTENT_FRAMES)
