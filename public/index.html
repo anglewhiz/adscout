@@ -601,6 +601,16 @@ const fmtNum = n => (n === null || n === undefined || n === "") ? "—"
   : (typeof n === "number" ? n.toLocaleString() : String(n));
 const has = a => Array.isArray(a) && a.length > 0;
 const asText = x => typeof x === "string" ? x : JSON.stringify(x);
+// Join markdown blocks with blank lines — but adjacent table rows ("|"-lines)
+// with a single newline, or GFM tables fall apart in the downloaded .md.
+function joinMd(L) {
+  let out = "";
+  for (let i = 0; i < L.length; i++) {
+    if (i) out += (String(L[i]).startsWith("|") && String(L[i - 1]).startsWith("|")) ? "\n" : "\n\n";
+    out += L[i];
+  }
+  return out + "\n";
+}
 
 function el(tag, cls, html) {
   const e = document.createElement(tag);
@@ -737,11 +747,14 @@ function researchToMarkdown(r) {
     r.next_actions.slice().sort((a, b) => (a.priority || 0) - (b.priority || 0))
       .forEach((a, i) => L.push(`${i + 1}. **${a.task || ""}** — ${a.reason || ""}`));
   }
-  return L.join("\n\n") + "\n";
+  return joinMd(L);
 }
 
 function download(name, text, type) {
-  const blob = new Blob([text], { type });
+  // Explicit charset + a BOM on markdown so Windows editors that assume ANSI
+  // don't mojibake em-dashes/middots; JSON stays BOM-free (parsers reject it).
+  const body = type.startsWith("text/markdown") ? "﻿" + text : text;
+  const blob = new Blob([body], { type: type + ";charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = name; a.click();
@@ -1020,7 +1033,7 @@ function validationToMarkdown(v) {
     v.next_actions.slice().sort((a, b) => (a.priority || 0) - (b.priority || 0))
       .forEach((a, i) => L.push(`${i + 1}. **${a.task || ""}** — ${a.reason || ""}`));
   }
-  return L.join("\n\n") + "\n";
+  return joinMd(L);
 }
 
 function renderValidation(v) {
@@ -1154,8 +1167,9 @@ function offersToMarkdown(o) {
       L.push(`### ${f.rank ?? ""}. ${f.name || ""} — Tier ${f.tier || "?"}`.trim());
       if (ev.signal) L.push(`- **Ad evidence:** ${ev.signal}`);
       if (has(ev.google_payers)) L.push(`- **Google payers:** ${ev.google_payers.join(", ")}`);
-      const e = ec.epc_estimates || null;
-      if (e) L.push(`- **EPC (est.):** conservative ${money(e.conservative)} · base ${money(e.base)} · optimistic ${money(e.optimistic)}${ec.assumed_cvr_range ? ` at ${ec.assumed_cvr_range} CVR` : ""}`);
+      const e = ec.epc_estimates || {};
+      if (e.conservative != null || e.base != null || e.optimistic != null)
+        L.push(`- **EPC (est.):** conservative ${money(e.conservative)} · base ${money(e.base)} · optimistic ${money(e.optimistic)}${ec.assumed_cvr_range ? ` at ${ec.assumed_cvr_range} CVR` : ""}`);
       if (fr.dominant_pattern) L.push(`- **Dominant funnel:** ${fr.dominant_pattern}${fr.presell_slug ? ` → presell: ${fr.presell_slug}` : ""}`);
       if (fr.opportunity_gap) L.push(`- **Gap:** ${fr.opportunity_gap}`);
       if (fit.compliance_burden) L.push(`- **Compliance burden:** ${fit.compliance_burden}${fit.notes ? ` — ${fit.notes}` : ""}`);
@@ -1186,7 +1200,7 @@ function offersToMarkdown(o) {
     L.push("## Validation Plan");
     o.validation_plan.forEach(d => L.push(`${d.day ?? "?"}. **Day ${d.day ?? "?"}** — ${d.task || ""}`));
   }
-  return L.join("\n\n") + "\n";
+  return joinMd(L);
 }
 
 function renderOffers(o) {

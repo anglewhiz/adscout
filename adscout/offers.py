@@ -131,6 +131,8 @@ winner's "why" must say so when it does. Tier A = receipts + economics + fit
 all line up (test first); B = promising with one named uncertainty; C = watch
 list. ad_evidence numbers come only from tool calls; payout figures only from
 the user or an extracted page — otherwise null + "unverified".
+ad_evidence.longest_runtime is a short phrase ("since 2026-06-16, ~10 weeks"),
+not a sentence — it renders in a table column.
 backend.fe_vs_avg_gap states the front-end-commission vs average-$/conversion
 read in one sentence; backend.credit is verified only with a source, else
 inferred/unknown; complementary_offers and winner.backend_sequence name the
