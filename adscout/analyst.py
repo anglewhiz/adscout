@@ -307,11 +307,21 @@ class Analyst:
                 if not answer and not nudged and resp.content and step < self.max_steps:
                     nudged = True
                     messages.append({"role": "assistant", "content": resp.content})
-                    messages.append({"role": "user", "content":
-                        "Now write your final analysis for the user in the required "
-                        "Markdown format (## Answer, ## Evidence, ## Verdict, and the "
-                        "creative sections if asked). Use the tool results already "
-                        "gathered above."})
+                    # The nudge must match the active mode — telling a JSON-mode
+                    # run to produce "## Answer / ## Evidence" Markdown overrides
+                    # the mode instructions and loses the structured report.
+                    if validation_mode or offers_mode or research_mode:
+                        nudge = ("Now return the single JSON object in a ```json "
+                                 "fenced block exactly as the mode instructions "
+                                 "specify — no prose outside it. Use the tool "
+                                 "results already gathered above.")
+                    else:
+                        nudge = ("Now write your final analysis for the user in "
+                                 "the required Markdown format (## Answer, "
+                                 "## Evidence, ## Verdict, and the creative "
+                                 "sections if asked). Use the tool results "
+                                 "already gathered above.")
+                    messages.append({"role": "user", "content": nudge})
                     continue
                 research = extract_research(answer) if research_mode else None
                 validation = extract_research(answer) if validation_mode else None

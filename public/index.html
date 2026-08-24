@@ -1124,6 +1124,172 @@ function renderValidation(v) {
   return wrap;
 }
 
+// --- Affiliate offer-scouting report --------------------------------------
+const TIER_CLASS = { A: "supported", B: "mixed", C: "inconclusive" };
+
+function offersToMarkdown(o) {
+  const L = [], brief = o.brief || {}, mr = o.market_read || {}, w = o.winner || {}, ru = o.runner_up || {};
+  const row = a => "| " + a.join(" | ") + " |";
+  const money = x => x == null ? "—" : "$" + x;
+  L.push(`# Offer Scouting — ${[brief.marketplace, brief.niche, brief.traffic_source].filter(Boolean).join(" · ")}`.trim());
+  const facts = [];
+  if (brief.min_commission != null) facts.push(`**Min commission:** $${brief.min_commission}`);
+  if (brief.test_budget != null) facts.push(`**Test budget:** $${brief.test_budget}`);
+  if (brief.geo) facts.push(`**Geo:** ${brief.geo}`);
+  if (facts.length) L.push(facts.join(" · "));
+  if (mr.summary) L.push(mr.summary);
+  if (mr.popularity_trap_note) L.push(`> ${mr.popularity_trap_note}`);
+  if (has(o.offers)) {
+    L.push("## Ranked Offers");
+    L.push(row(["#","Offer","Avg payout","Meta ads","Advertisers","Longest run","BE CPA","Fit","Score","Tier"]));
+    L.push(row(Array(10).fill("---")));
+    o.offers.forEach(f => {
+      const ev = f.ad_evidence || {}, fit = f.traffic_fit || {}, ec = f.economics || {};
+      L.push(row([f.rank ?? "", f.name || "", money(f.average_payout ?? f.commission) + (f.payout_source && f.payout_source !== "user" ? ` (${f.payout_source})` : ""),
+        ev.active_meta_ads ?? "—", ev.distinct_advertisers ?? "—", ev.longest_runtime || "—",
+        money(ec.break_even_cpa), fit.score ?? "—", f.opportunity_score ?? "—", f.tier || "—"]));
+    });
+    o.offers.forEach(f => {
+      const ev = f.ad_evidence || {}, fr = f.funnel_read || {}, ec = f.economics || {}, fit = f.traffic_fit || {};
+      L.push(`### ${f.rank ?? ""}. ${f.name || ""} — Tier ${f.tier || "?"}`.trim());
+      if (ev.signal) L.push(`- **Ad evidence:** ${ev.signal}`);
+      if (has(ev.google_payers)) L.push(`- **Google payers:** ${ev.google_payers.join(", ")}`);
+      const e = ec.epc_estimates || null;
+      if (e) L.push(`- **EPC (est.):** conservative ${money(e.conservative)} · base ${money(e.base)} · optimistic ${money(e.optimistic)}${ec.assumed_cvr_range ? ` at ${ec.assumed_cvr_range} CVR` : ""}`);
+      if (fr.dominant_pattern) L.push(`- **Dominant funnel:** ${fr.dominant_pattern}${fr.presell_slug ? ` → presell: ${fr.presell_slug}` : ""}`);
+      if (fr.opportunity_gap) L.push(`- **Gap:** ${fr.opportunity_gap}`);
+      if (fit.compliance_burden) L.push(`- **Compliance burden:** ${fit.compliance_burden}${fit.notes ? ` — ${fit.notes}` : ""}`);
+      if (has(f.risks)) L.push(`- **Risks:** ${f.risks.map(asText).join("; ")}`);
+    });
+  }
+  if (w.name) {
+    L.push(`## The One To Test First: ${w.name}`);
+    [["Why","why"],["Avatar","avatar"],["Angle","angle"],["Creative","creative_concept"],["Presell","presell_slug"],
+     ["Kill rule","kill_rule"],["Scale rule","scale_rule"],["Biggest risk","biggest_risk"]]
+      .forEach(([l,k]) => { if (w[k]) L.push(`- **${l}:** ${w[k]}`); });
+    const c = [];
+    if (w.daily_budget != null) c.push(`**Daily budget:** $${w.daily_budget}`);
+    if (w.creatives_to_launch) c.push(`**Creatives:** ${w.creatives_to_launch}`);
+    if (c.length) L.push(c.join(" · "));
+  }
+  if (ru.name) L.push(`## Runner-Up: ${ru.name}\n\n${ru.why_it_lost || ""}`);
+  if (has(o.validation_plan)) {
+    L.push("## Validation Plan");
+    o.validation_plan.forEach(d => L.push(`${d.day ?? "?"}. **Day ${d.day ?? "?"}** — ${d.task || ""}`));
+  }
+  return L.join("\n\n") + "\n";
+}
+
+function renderOffers(o) {
+  const wrap = document.createElement("div");
+  const esc = s => escapeHtml(String(s ?? ""));
+  const money = x => x == null ? "—" : "$" + esc(x);
+  const brief = o.brief || {}, mr = o.market_read || {}, w = o.winner || {}, ru = o.runner_up || {};
+  const slug = (brief.niche || w.name || "offers").toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "offers";
+
+  wrap.appendChild(sectionHead("Affiliate offer scouting report"));
+
+  const actions = el("div", "json-actions");
+  const mkBtn = (label, fn) => { const b = el("button", "btn-sm", label); b.type = "button"; b.onclick = fn; return b; };
+  const pretty = JSON.stringify(o, null, 2);
+  actions.appendChild(mkBtn("Copy JSON", (e) => {
+    navigator.clipboard.writeText(pretty).then(() => { e.target.textContent = "Copied ✓"; setTimeout(() => e.target.textContent = "Copy JSON", 1500); });
+  }));
+  actions.appendChild(mkBtn("Download JSON", () => download(`offers-${slug}.json`, pretty, "application/json")));
+  actions.appendChild(mkBtn("Download MD", () => download(`offers-${slug}.md`, offersToMarkdown(o), "text/markdown")));
+  wrap.appendChild(actions);
+
+  if (w.name) {
+    const vw = el("div", "verdict-wrap");
+    vw.innerHTML = `<span class="verdict supported">Test first: ${esc(w.name)}</span>`;
+    wrap.appendChild(vw);
+    if (w.why) wrap.appendChild(el("div", "rep-p", esc(w.why)));
+  }
+  let h = "";
+  const top = [brief.marketplace, brief.niche, brief.traffic_source].filter(Boolean).map(esc).join(" · ");
+  if (top) h += `<div class="top">◆ ${top}</div>`;
+  const parts = [];
+  if (brief.min_commission != null) parts.push(`<strong>Min commission:</strong> ${money(brief.min_commission)}`);
+  if (brief.test_budget != null) parts.push(`<strong>Test budget:</strong> ${money(brief.test_budget)}`);
+  if (brief.geo) parts.push(`<strong>Geo:</strong> ${esc(brief.geo)}`);
+  if (parts.length) h += `<div class="rec">${parts.join(" · ")}</div>`;
+  if (mr.summary) h += `<div class="rec">${esc(mr.summary)}</div>`;
+  if (mr.popularity_trap_note) h += `<div class="facts">${esc(mr.popularity_trap_note)}</div>`;
+  if (h) wrap.appendChild(el("div", "research-head", h));
+
+  if (has(o.offers)) {
+    wrap.appendChild(el("div", "rep-h", "Ranked offers"));
+    const tw = el("div", "tbl-wrap");
+    let t = '<table class="kw-table"><thead><tr>' +
+      ["#","Offer","Avg payout","Meta ads","Advertisers","BE CPA","Fit","Score","Tier"].map(c => `<th>${c}</th>`).join("") +
+      "</tr></thead><tbody>";
+    o.offers.forEach(f => {
+      const ev = f.ad_evidence || {}, fit = f.traffic_fit || {}, ec = f.economics || {};
+      const payout = money(f.average_payout ?? f.commission) +
+        (f.payout_source && f.payout_source !== "user" ? ` <em>(${esc(f.payout_source)})</em>` : "");
+      t += "<tr>" + [f.rank ?? "", `<span class="kw">${esc(f.name)}</span>`, payout,
+        ev.active_meta_ads ?? "—", ev.distinct_advertisers ?? "—", money(ec.break_even_cpa),
+        fit.score ?? "—", f.opportunity_score ?? "—",
+        `<span class="verdict ${TIER_CLASS[String(f.tier || "").toUpperCase()] || "inconclusive"}">${esc(f.tier || "?")}</span>`]
+        .map(c => `<td>${c}</td>`).join("") + "</tr>";
+    });
+    tw.innerHTML = t + "</tbody></table>";
+    wrap.appendChild(tw);
+
+    const detail = o.offers.filter(f => (f.ad_evidence || {}).signal || (f.funnel_read || {}).dominant_pattern);
+    if (detail.length) {
+      wrap.appendChild(el("div", "rep-h", "Evidence & funnel reads"));
+      const ul = el("ul", "rep-list");
+      detail.forEach(f => {
+        const ev = f.ad_evidence || {}, fr = f.funnel_read || {}, fit = f.traffic_fit || {};
+        let s = `<strong>${esc(f.name)}</strong>`;
+        if (ev.signal) s += ` — ${esc(ev.signal)}`;
+        if (fr.dominant_pattern) s += ` · <em>funnel:</em> ${esc(fr.dominant_pattern)}${fr.presell_slug ? ` → ${esc(fr.presell_slug)}` : ""}`;
+        if (fit.compliance_burden) s += ` · <em>compliance:</em> ${esc(fit.compliance_burden)}`;
+        ul.appendChild(el("li", null, s));
+      });
+      wrap.appendChild(ul);
+    }
+  }
+
+  if (w.name || ru.name) {
+    wrap.appendChild(el("div", "rep-h", "Winner & runner-up"));
+    const g = el("div", "rep-cards");
+    if (w.name) {
+      let inner = `<div class="t">${esc(w.name)} — test first</div>`;
+      if (w.angle) inner += `<div class="d"><strong>Angle:</strong> ${esc(w.angle)}</div>`;
+      if (w.creative_concept) inner += `<div class="u">Creative: ${esc(w.creative_concept)}</div>`;
+      if (w.presell_slug) inner += `<div class="u">Presell: ${esc(w.presell_slug)}</div>`;
+      if (w.daily_budget != null || w.creatives_to_launch)
+        inner += `<div class="u">${w.daily_budget != null ? `$${esc(w.daily_budget)}/day` : ""}${w.creatives_to_launch ? ` · ${esc(w.creatives_to_launch)} creatives` : ""}</div>`;
+      if (w.kill_rule) inner += `<div class="u">Kill: ${esc(w.kill_rule)}</div>`;
+      if (w.scale_rule) inner += `<div class="u">Scale: ${esc(w.scale_rule)}</div>`;
+      if (w.biggest_risk) inner += `<div class="u">Risk: ${esc(w.biggest_risk)}</div>`;
+      g.appendChild(el("div", "rep-card", inner));
+    }
+    if (ru.name) {
+      g.appendChild(el("div", "rep-card",
+        `<div class="t">${esc(ru.name)} — runner-up</div><div class="d">${esc(ru.why_it_lost || "")}</div>`));
+    }
+    wrap.appendChild(g);
+  }
+
+  if (has(o.validation_plan)) {
+    wrap.appendChild(el("div", "rep-h", "Validation plan"));
+    const ol = el("ol", "rep-list");
+    o.validation_plan.slice().sort((a, b) => (a.day || 0) - (b.day || 0))
+      .forEach(d => ol.appendChild(el("li", null, `<strong>Day ${esc(d.day ?? "?")}</strong> — ${esc(d.task || "")}`)));
+    wrap.appendChild(ol);
+  }
+
+  const det = el("details", "json-details");
+  det.appendChild(el("summary", null, "Raw JSON object"));
+  const pre = el("pre", "json-block"); pre.textContent = pretty;
+  det.appendChild(pre);
+  wrap.appendChild(det);
+  return wrap;
+}
+
 function buildResultCard(data) {
   const card = document.createElement("div");
   card.className = "card";
@@ -1135,10 +1301,23 @@ function buildResultCard(data) {
     card.appendChild(b);
   }
 
-  if (data.validation) {
+  if (data.offers) {
+    card.appendChild(renderOffers(data.offers));
+  } else if (data.validation) {
     card.appendChild(renderValidation(data.validation));
   } else if (data.research) {
     card.appendChild(renderResearch(data.research));
+  } else if (/"payout_source"|"runner_up"/.test(data.answer || "")) {
+    // Offer-scouting JSON arrived but the server didn't attach a parsed object
+    // (usually truncation) — salvage client-side like research mode does.
+    const salvagedOffers = salvageResearch(data.answer);
+    if (salvagedOffers) card.appendChild(renderOffers(salvagedOffers));
+    else {
+      const pre = document.createElement("pre");
+      pre.className = "json-block";
+      pre.textContent = data.answer;
+      card.appendChild(pre);
+    }
   } else if (/"research_summary"/.test(data.answer || "")) {
     // Research mode was requested but the server didn't attach a parsed object
     // (usually a max_tokens cut-off). Try to salvage it client-side before
