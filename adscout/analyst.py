@@ -279,6 +279,16 @@ class Analyst:
         else:
             system = SYSTEM_PROMPT
 
+        # Conversation mode re-sends earlier turns, and prior Markdown-format
+        # answers in the thread act as format precedent the model imitates.
+        # When a JSON mode is active on a follow-up, pin the format explicitly
+        # on the new question so history can't override the mode instructions.
+        if (validation_mode or offers_mode or research_mode) and len(messages) > 1:
+            messages[-1] = {"role": "user", "content": question +
+                "\n\n(Answer with the single JSON object required by the mode "
+                "instructions — ignore the format of earlier answers in this "
+                "thread.)"}
+
         for step in range(1, self.max_steps + 1):
             kwargs = dict(
                 model=self.model,
