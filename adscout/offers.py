@@ -34,6 +34,15 @@ promote with paid traffic, so IGNORE the standard "## Answer / ## Evidence /
    structure; at most 1-2 capture_landing_page calls on the funnel or a rival's
    presell. Never confuse advertising ACTIVITY with advertising PROFITABILITY —
    long runtimes are the best available proxy, not proof; say so in the report.
+   BE ECONOMICAL — the whole analysis must fit one serverless run: spend at
+   most ~3 slow calls total (Meta lookups / extract_product_page /
+   capture_landing_page combined). With a candidate list, rank candidates by
+   the fast SpyFu read first and spend the slow budget on the top 2-3 only.
+   With NO candidate list (discovery), do ONE niche-level search_facebook_ads
+   sweep plus fast SpyFu calls to shortlist, verify at most the top 1-2 names,
+   and return the rest as tier C with null ad_evidence and their verification
+   queued in validation_plan day 1 — a delivered shortlist beats a timed-out
+   deep dive. Skip screenshots in discovery runs.
 3. Run the payout-ceiling economics. The affiliate's entire LTV is the payout:
    no back-end rescues thin front-end math. Break-even CPA = average payout
    (use AVERAGE payout with upsells/rebills when known, not front-end

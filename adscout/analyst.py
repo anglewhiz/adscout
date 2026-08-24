@@ -120,13 +120,17 @@ _EMPTY_FALLBACK = ("The analysis ran but didn't produce a written summary — th
                    "or raise Max steps. The evidence trace below shows what was gathered.")
 
 
-# Slow tools (each ~30-90s). Once the run passes SLOW_DEADLINE seconds we refuse
+# Slow tools (each ~30-90s). Once the run passes the slow deadline we refuse
 # to START new slow calls, so the request always has time to finish and write an
 # answer within the serverless function's hard limit (~300s).
 _SLOW_TOOLS = {"search_facebook_ads", "get_advertiser_facebook_ads",
                "capture_landing_page", "search_tiktok_shop", "search_tiktok_ads",
                "extract_product_page"}
 _SLOW_DEADLINE = 150.0
+# Structured JSON modes write 16K+ token objects, which alone can take
+# 60-120s. A slow call started at t=149 runs to ~t=249, leaving no room for
+# that generation inside the 300s cap — so those runs stop slow calls earlier.
+_SLOW_DEADLINE_BIG_OUTPUT = 100.0
 
 
 def _wants_creative(question: str) -> bool:
@@ -289,6 +293,9 @@ class Analyst:
                 "instructions — ignore the format of earlier answers in this "
                 "thread.)"}
 
+        slow_deadline = (_SLOW_DEADLINE_BIG_OUTPUT if max_tokens >= 16384
+                         else _SLOW_DEADLINE)
+
         for step in range(1, self.max_steps + 1):
             kwargs = dict(
                 model=self.model,
@@ -351,7 +358,7 @@ class Analyst:
                 # Refuse to START a new slow lookup when time is nearly up, so
                 # the model concludes instead of blowing the function timeout.
                 if (block.name in _SLOW_TOOLS
-                        and time.monotonic() - started > _SLOW_DEADLINE):
+                        and time.monotonic() - started > slow_deadline):
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
