@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from .client import SpyFuClient
 from .content_frames import CONTENT_FRAMES
 from .copywriting import COPY_FRAME
+from .offers import OFFERS_INSTRUCTIONS
 from .research import RESEARCH_INSTRUCTIONS, extract_research
 from .strategy import STRATEGY_FRAME
 from .validator import VALIDATOR_INSTRUCTIONS
@@ -145,6 +146,18 @@ def _wants_validation(question: str) -> bool:
                                 "saas idea", "run the validator"))
 
 
+def _wants_offer_scouting(question: str) -> bool:
+    """Detect a request to find/vet an affiliate offer to run with paid traffic."""
+    q = question.lower()
+    if any(t in q for t in ("clickbank", "digistore", "shareasale", "buygoods",
+                            "warriorplus", "maxweb", "affiliate network",
+                            "affiliate marketplace", "affiliate offer",
+                            "offer to promote", "offer scouting")):
+        return True
+    return "offer" in q and any(t in q for t in ("promote", "commission",
+                                                 "payout", "affiliate"))
+
+
 def _wants_keyword_research(question: str) -> bool:
     """Detect a request for a structured keyword/niche research object."""
     q = question.lower()
@@ -177,6 +190,8 @@ class AnalystResult:
     research: dict | None = None
     # Structured idea-validation report (validation mode only).
     validation: dict | None = None
+    # Structured affiliate-offer scouting report (offer-scouting mode only).
+    offers: dict | None = None
 
 
 class Analyst:
@@ -240,12 +255,20 @@ class Analyst:
         # pages/assets are named by buildable framework slugs. All conditional
         # so ordinary queries stay lean.
         validation_mode = _wants_validation(question)
-        research_mode = (not validation_mode) and _wants_keyword_research(question)
+        offers_mode = (not validation_mode) and _wants_offer_scouting(question)
+        research_mode = (not validation_mode and not offers_mode) \
+            and _wants_keyword_research(question)
         max_tokens = self.max_tokens
         if validation_mode:
             system = SYSTEM_PROMPT + "\n\n" + VALIDATOR_INSTRUCTIONS
             # 8192 truncated real reports once mined insights fattened the
             # evidence (risks/name_check/next_actions fell off the end).
+            max_tokens = max(self.max_tokens, 16384)
+        elif offers_mode:
+            # Content frames ride along so presell recommendations name real
+            # catalog slugs (advertorial / quiz / listicle...).
+            system = (SYSTEM_PROMPT + "\n\n" + OFFERS_INSTRUCTIONS
+                      + "\n\n" + CONTENT_FRAMES)
             max_tokens = max(self.max_tokens, 16384)
         elif research_mode:
             system = (SYSTEM_PROMPT + "\n\n" + RESEARCH_INSTRUCTIONS
@@ -292,10 +315,11 @@ class Analyst:
                     continue
                 research = extract_research(answer) if research_mode else None
                 validation = extract_research(answer) if validation_mode else None
+                offers = extract_research(answer) if offers_mode else None
                 return AnalystResult(
                     answer=answer or _EMPTY_FALLBACK, trace=trace, steps=step,
                     screenshots=screenshots, creatives=creatives, research=research,
-                    validation=validation)
+                    validation=validation, offers=offers)
 
             # Record the assistant turn (with its tool_use blocks) verbatim.
             messages.append({"role": "assistant", "content": resp.content})

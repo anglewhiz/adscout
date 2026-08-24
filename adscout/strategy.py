@@ -140,6 +140,26 @@ STRATEGIC LENSES — apply these to interpret the competitive data, not just rep
   30% close rate is a $50 vs $300 acceptable CPL, which makes the sales process,
   not the ads, the high-leverage fix. And ~$20 gross profit per customer is a
   business-model problem no optimisation can save.
+- The affiliate payout ceiling. When the operator is an AFFILIATE, their entire
+  LTV is the payout — there is no back-end to rescue thin front-end math. So
+  break-even CPA = average payout (with upsells/rebills, not the front-end
+  commission) and break-even CPC = EPC = payout x funnel conversion rate; judge
+  any "promote X for $Y" claim through that ceiling. Corollary: the vendor's
+  funnel IS the affiliate's conversion rate — they can't edit the offer page, so
+  the presell/bridge asset is their only owned lever, and reading the vendor
+  funnel is due diligence, not curiosity.
+- The popularity-metric trap. Marketplace popularity scores (Gravity and kin)
+  measure how many affiliates recently converted — a crowding, lagging signal,
+  not an opportunity signal. Verify with ad-library receipts instead: many
+  DISTINCT advertisers running the same offer for months is the market saying
+  the payout supports traffic costs; one advertiser (usually the vendor) means
+  affiliate demand is unproven. Still activity, not proven profitability.
+- Offer <-> traffic-source fit. An offer that converts on email or native can
+  die on cold Meta — match funnel type to traffic temperature before trusting
+  any cross-channel evidence. And weigh the vertical's compliance burden as a
+  real cost: claim-heavy verticals (weight loss, health) carry restricted
+  angles and ban risk on Meta; a physical non-supplement product carries a
+  lower claim burden and is the safer first offer for an inexperienced buyer.
 - Pick a competition you can win: in many spaces ~half of all reward goes to the
   top ~1% of players, so ranking 15th captures crumbs. Dominance in a tight local
   or niche arena beats mediocrity in a broad one — then expand. Corollary on

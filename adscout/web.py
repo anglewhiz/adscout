@@ -383,6 +383,7 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
         "creatives": result.creatives,
         "research": research,
         "validation": result.validation,
+        "offers": result.offers,
         "trace": [
             {"name": c.name, "input": c.input, "result_summary": c.result_summary}
             for c in result.trace
