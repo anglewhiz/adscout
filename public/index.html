@@ -1141,16 +1141,16 @@ function offersToMarkdown(o) {
   if (mr.popularity_trap_note) L.push(`> ${mr.popularity_trap_note}`);
   if (has(o.offers)) {
     L.push("## Ranked Offers");
-    L.push(row(["#","Offer","Avg payout","Meta ads","Advertisers","Longest run","BE CPA","Fit","Score","Tier"]));
-    L.push(row(Array(10).fill("---")));
+    L.push(row(["#","Offer","Avg payout","Meta ads","Advertisers","Longest run","BE CPA","Fit","Backend","Score","Tier"]));
+    L.push(row(Array(11).fill("---")));
     o.offers.forEach(f => {
-      const ev = f.ad_evidence || {}, fit = f.traffic_fit || {}, ec = f.economics || {};
+      const ev = f.ad_evidence || {}, fit = f.traffic_fit || {}, ec = f.economics || {}, be = f.backend || {};
       L.push(row([f.rank ?? "", f.name || "", money(f.average_payout ?? f.commission) + (f.payout_source && f.payout_source !== "user" ? ` (${f.payout_source})` : ""),
         ev.active_meta_ads ?? "—", ev.distinct_advertisers ?? "—", ev.longest_runtime || "—",
-        money(ec.break_even_cpa), fit.score ?? "—", f.opportunity_score ?? "—", f.tier || "—"]));
+        money(ec.break_even_cpa), fit.score ?? "—", be.expansion_score ?? "—", f.opportunity_score ?? "—", f.tier || "—"]));
     });
     o.offers.forEach(f => {
-      const ev = f.ad_evidence || {}, fr = f.funnel_read || {}, ec = f.economics || {}, fit = f.traffic_fit || {};
+      const ev = f.ad_evidence || {}, fr = f.funnel_read || {}, ec = f.economics || {}, fit = f.traffic_fit || {}, be = f.backend || {};
       L.push(`### ${f.rank ?? ""}. ${f.name || ""} — Tier ${f.tier || "?"}`.trim());
       if (ev.signal) L.push(`- **Ad evidence:** ${ev.signal}`);
       if (has(ev.google_payers)) L.push(`- **Google payers:** ${ev.google_payers.join(", ")}`);
@@ -1159,20 +1159,29 @@ function offersToMarkdown(o) {
       if (fr.dominant_pattern) L.push(`- **Dominant funnel:** ${fr.dominant_pattern}${fr.presell_slug ? ` → presell: ${fr.presell_slug}` : ""}`);
       if (fr.opportunity_gap) L.push(`- **Gap:** ${fr.opportunity_gap}`);
       if (fit.compliance_burden) L.push(`- **Compliance burden:** ${fit.compliance_burden}${fit.notes ? ` — ${fit.notes}` : ""}`);
+      if (be.fe_vs_avg_gap) L.push(`- **Backend read:** ${be.fe_vs_avg_gap}${be.credit ? ` (affiliate credit: ${be.credit})` : ""}`);
+      if (has(be.vendor_backend)) L.push(`- **Vendor backend:** ${be.vendor_backend.map(asText).join(" → ")}`);
+      if (be.next_logical_problem) L.push(`- **Next logical problem:** ${be.next_logical_problem}`);
+      if (has(be.complementary_offers)) L.push(`- **Complementary offers:** ${be.complementary_offers.map(asText).join(" → ")}`);
       if (has(f.risks)) L.push(`- **Risks:** ${f.risks.map(asText).join("; ")}`);
     });
   }
   if (w.name) {
     L.push(`## The One To Test First: ${w.name}`);
     [["Why","why"],["Avatar","avatar"],["Angle","angle"],["Creative","creative_concept"],["Presell","presell_slug"],
-     ["Kill rule","kill_rule"],["Scale rule","scale_rule"],["Biggest risk","biggest_risk"]]
+     ["List asset","list_asset"],["Kill rule","kill_rule"],["Scale rule","scale_rule"],["Biggest risk","biggest_risk"]]
       .forEach(([l,k]) => { if (w[k]) L.push(`- **${l}:** ${w[k]}`); });
+    if (has(w.backend_sequence)) L.push(`- **Backend sequence:** ${w.backend_sequence.map(asText).join(" → ")}`);
     const c = [];
     if (w.daily_budget != null) c.push(`**Daily budget:** $${w.daily_budget}`);
     if (w.creatives_to_launch) c.push(`**Creatives:** ${w.creatives_to_launch}`);
     if (c.length) L.push(c.join(" · "));
   }
   if (ru.name) L.push(`## Runner-Up: ${ru.name}\n\n${ru.why_it_lost || ""}`);
+  if (has(o.human_steps)) {
+    L.push("## Funnel Autopsy — Human Steps");
+    o.human_steps.forEach((s, i) => L.push(`${i + 1}. **${s.step || ""}**${s.what_to_learn ? ` — ${s.what_to_learn}` : ""}`));
+  }
   if (has(o.validation_plan)) {
     L.push("## Validation Plan");
     o.validation_plan.forEach(d => L.push(`${d.day ?? "?"}. **Day ${d.day ?? "?"}** — ${d.task || ""}`));
@@ -1221,15 +1230,15 @@ function renderOffers(o) {
     wrap.appendChild(el("div", "rep-h", "Ranked offers"));
     const tw = el("div", "tbl-wrap");
     let t = '<table class="kw-table"><thead><tr>' +
-      ["#","Offer","Avg payout","Meta ads","Advertisers","BE CPA","Fit","Score","Tier"].map(c => `<th>${c}</th>`).join("") +
+      ["#","Offer","Avg payout","Meta ads","Advertisers","BE CPA","Fit","Backend","Score","Tier"].map(c => `<th>${c}</th>`).join("") +
       "</tr></thead><tbody>";
     o.offers.forEach(f => {
-      const ev = f.ad_evidence || {}, fit = f.traffic_fit || {}, ec = f.economics || {};
+      const ev = f.ad_evidence || {}, fit = f.traffic_fit || {}, ec = f.economics || {}, be = f.backend || {};
       const payout = money(f.average_payout ?? f.commission) +
         (f.payout_source && f.payout_source !== "user" ? ` <em>(${esc(f.payout_source)})</em>` : "");
       t += "<tr>" + [f.rank ?? "", `<span class="kw">${esc(f.name)}</span>`, payout,
         ev.active_meta_ads ?? "—", ev.distinct_advertisers ?? "—", money(ec.break_even_cpa),
-        fit.score ?? "—", f.opportunity_score ?? "—",
+        fit.score ?? "—", be.expansion_score ?? "—", f.opportunity_score ?? "—",
         `<span class="verdict ${TIER_CLASS[String(f.tier || "").toUpperCase()] || "inconclusive"}">${esc(f.tier || "?")}</span>`]
         .map(c => `<td>${c}</td>`).join("") + "</tr>";
     });
@@ -1250,6 +1259,26 @@ function renderOffers(o) {
       });
       wrap.appendChild(ul);
     }
+
+    const backends = o.offers.filter(f => {
+      const be = f.backend || {};
+      return be.fe_vs_avg_gap || be.next_logical_problem || has(be.complementary_offers);
+    });
+    if (backends.length) {
+      wrap.appendChild(el("div", "rep-h", "Backend reads (the ecosystem behind each offer)"));
+      const ul = el("ul", "rep-list");
+      backends.forEach(f => {
+        const be = f.backend || {};
+        let s = `<strong>${esc(f.name)}</strong>`;
+        if (be.expansion_score != null) s += ` <span class="kw-score">${esc(be.expansion_score)}/10</span>`;
+        if (be.fe_vs_avg_gap) s += ` — ${esc(be.fe_vs_avg_gap)}`;
+        if (be.credit) s += ` · <em>affiliate credit:</em> ${esc(be.credit)}`;
+        if (be.next_logical_problem) s += ` · <em>next problem:</em> ${esc(be.next_logical_problem)}`;
+        if (has(be.complementary_offers)) s += ` · <em>chain:</em> ${be.complementary_offers.map(x => esc(asText(x))).join(" → ")}`;
+        ul.appendChild(el("li", null, s));
+      });
+      wrap.appendChild(ul);
+    }
   }
 
   if (w.name || ru.name) {
@@ -1260,6 +1289,8 @@ function renderOffers(o) {
       if (w.angle) inner += `<div class="d"><strong>Angle:</strong> ${esc(w.angle)}</div>`;
       if (w.creative_concept) inner += `<div class="u">Creative: ${esc(w.creative_concept)}</div>`;
       if (w.presell_slug) inner += `<div class="u">Presell: ${esc(w.presell_slug)}</div>`;
+      if (w.list_asset) inner += `<div class="u">List asset: ${esc(w.list_asset)}</div>`;
+      if (has(w.backend_sequence)) inner += `<div class="u">Backend: ${w.backend_sequence.map(x => esc(asText(x))).join(" → ")}</div>`;
       if (w.daily_budget != null || w.creatives_to_launch)
         inner += `<div class="u">${w.daily_budget != null ? `$${esc(w.daily_budget)}/day` : ""}${w.creatives_to_launch ? ` · ${esc(w.creatives_to_launch)} creatives` : ""}</div>`;
       if (w.kill_rule) inner += `<div class="u">Kill: ${esc(w.kill_rule)}</div>`;
@@ -1272,6 +1303,14 @@ function renderOffers(o) {
         `<div class="t">${esc(ru.name)} — runner-up</div><div class="d">${esc(ru.why_it_lost || "")}</div>`));
     }
     wrap.appendChild(g);
+  }
+
+  if (has(o.human_steps)) {
+    wrap.appendChild(el("div", "rep-h", "Funnel autopsy — steps only a human can do"));
+    const ol = el("ol", "rep-list");
+    o.human_steps.forEach(s => ol.appendChild(el("li", null,
+      `<strong>${esc(s.step || "")}</strong>${s.what_to_learn ? ` — ${esc(s.what_to_learn)}` : ""}`)));
+    wrap.appendChild(ol);
   }
 
   if (has(o.validation_plan)) {

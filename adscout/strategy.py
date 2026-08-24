@@ -140,14 +140,24 @@ STRATEGIC LENSES — apply these to interpret the competitive data, not just rep
   30% close rate is a $50 vs $300 acceptable CPL, which makes the sales process,
   not the ads, the high-leverage fix. And ~$20 gross profit per customer is a
   business-model problem no optimisation can save.
-- The affiliate payout ceiling. When the operator is an AFFILIATE, their entire
-  LTV is the payout — there is no back-end to rescue thin front-end math. So
-  break-even CPA = average payout (with upsells/rebills, not the front-end
-  commission) and break-even CPC = EPC = payout x funnel conversion rate; judge
-  any "promote X for $Y" claim through that ceiling. Corollary: the vendor's
-  funnel IS the affiliate's conversion rate — they can't edit the offer page, so
-  the presell/bridge asset is their only owned lever, and reading the vendor
-  funnel is due diligence, not curiosity.
+- The affiliate payout ceiling — and the two backends that raise it. By default
+  an affiliate's entire LTV is the payout: break-even CPA = average payout (with
+  upsells/rebills, not the front-end commission) and break-even CPC = EPC =
+  payout x funnel conversion rate; judge any "promote X for $Y" claim through
+  that ceiling. The ceiling lifts two ways. (1) The VENDOR's backend: a wide gap
+  between front-end commission and average $/conversion is the receipt that
+  bumps/upsells/rebills exist — but whether affiliate ATTRIBUTION carries into
+  that backend is the decisive question, and it's verified/inferred/unknown,
+  never assumed. (2) The affiliate's OWN backend: capture the buyer on a
+  presell/list first and the front-end offer becomes an acquisition vehicle for
+  a chain of complementary offers — the "next logical problem" the same buyer
+  hits (the adjacent-basket lens, run forward in time). So the real question is
+  never "which offer pays most" but "which front end buys the cheapest buyer in
+  the market with the deepest downstream value" — a $110 offer in a rich
+  ecosystem beats a $180 one-and-done. Corollary: the vendor's funnel IS the
+  affiliate's conversion rate — they can't edit the offer page, so the
+  presell/bridge asset is their only owned lever, and reading the vendor funnel
+  is due diligence, not curiosity.
 - The popularity-metric trap. Marketplace popularity scores (Gravity and kin)
   measure how many affiliates recently converted — a crowding, lagging signal,
   not an opportunity signal. Verify with ad-library receipts instead: many
