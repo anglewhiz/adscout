@@ -76,12 +76,26 @@ HOW TO WORK:
    - "creative_tool"  — image/video ad generator (per-angle ad creatives)
    - "aweber"         — email platform (list, welcome + belief-journey
                         sequence)
+   - "story_generator" — the user's Sales Story Generator
+                        (sales-story-secrets.vercel.app): turns raw material
+                        into the origin story via seven named blueprints
    - "airtable"       — campaign tracker (the spreadsheet row spec)
    - "make"           — automation scenarios (organic distribution posts)
    - "meta_ads_manager" — campaign/adset/ad structure + budgets + rules
    Include ONE "bridge_skill" asset whose prompt serializes the campaign as
    that skill's intake (product, niche & audience, story angle + placeholders,
    proof inventory, traffic source, vendor launch calendar).
+   Include ONE "story_generator" asset that serializes the generator's form
+   inputs: INFO DUMP (the origin_story_beats verbatim as messy raw material,
+   [USER] placeholders intact), THE OFFER (one line), AVATAR (one line), plus
+   a RECOMMENDED BLUEPRINT — exactly one of the seven: Against All Odds /
+   Real-World Desperation / I'm Mad As Hell / Plain Sight Secret / Zero to
+   Hero / Hidden Genius / Unknown Prophet — chosen to match the observed
+   angle data and avatar psychology, with a one-line reason; a STORY TYPE
+   (Origin Story 7-part, Sales Story 4-part, or auto); POV / LENGTH / TONE
+   suggestions. The generated story then fills the bridge page's STORY
+   section and the email sequence's origin-story raw material — say so in
+   the asset's notes and wire depends_on accordingly.
 7. Emails: one entry per day (0 through 4+), each with the belief it kills, a
    subject direction, and a complete self-contained generation prompt.
 8. Tracking: affiliate-link placement rules (bridge page CTA + email CTAs),
@@ -122,7 +136,7 @@ shaped exactly like this:
   },
   "launch_sync": {"vendor_wave_evidence": "", "timing_call": ""},
   "assets": [
-    {"id": "", "type": "", "handoff": "bridge_skill|page_builder|creative_tool|aweber|airtable|make|meta_ads_manager", "title": "", "depends_on": [], "prompt": "", "notes": ""}
+    {"id": "", "type": "", "handoff": "bridge_skill|page_builder|creative_tool|aweber|story_generator|airtable|make|meta_ads_manager", "title": "", "depends_on": [], "prompt": "", "notes": ""}
   ],
   "email_sequence": [
     {"day": 0, "belief": "", "subject_direction": "", "prompt": ""}
@@ -146,6 +160,12 @@ beliefs or say which is uncovered and why. product_vet evidence names its
 source (thread report, tool call, or "unverified"). hook_url_ideas carry no
 availability claim. launch_sync.timing_call is one concrete sentence ("launch
 within N days while the wave runs" / "wait for the next push, watch X").
+The story_generator blueprint pick is a marketing judgment grounded in data —
+e.g. an effort-fatigued avatar hearing "it's not your fault" fits Real-World
+Desperation or Plain Sight Secret; a discovery/testimonial ad wave fits
+Hidden Genius; a contrarian angle against the industry fits I'm Mad As Hell —
+name the observed evidence behind the pick, and never present the blueprint
+as the user's actual biography.
 Every factual claim keeps the VERIFIED/SIGNAL/ESTIMATE discipline of the
 system prompt; the user's story, proof, and belief stay human placeholders.
 Keep strings tight and return complete, closed JSON — drop optional assets
