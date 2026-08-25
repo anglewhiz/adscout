@@ -309,7 +309,8 @@ def _make_mined_client(settings, mock: bool):
 
 
 def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
-                 password: str = "", history: list | None = None) -> dict:
+                 password: str = "", history: list | None = None,
+                 context: str | None = None) -> dict:
     """Run one analysis and return a JSON-serializable result dict."""
     _check_access(mode, password)
 
@@ -368,7 +369,7 @@ def run_analysis(question: str, *, mode: str, country: str, max_steps: int,
             default_country=settings.default_country,
             max_steps=max_steps,
         )
-        result = analyst.ask(question, history=history)
+        result = analyst.ask(question, history=history, context=context)
 
     research = result.research
     if isinstance(research, dict) and isinstance(research.get("research_summary"), dict):
@@ -508,5 +509,18 @@ def parse_ask_payload(payload: dict) -> dict:
             if role in ("user", "assistant") and isinstance(content, str) and content.strip():
                 history.append({"role": role, "content": content[:6000]})
 
+    # Carried-over context (a previous session's downloaded report, or a draft
+    # to build on). Unlike history turns it stays intact up to its own larger
+    # cap, so a full report JSON survives; beyond that we truncate rather than
+    # reject, and the model sees the marker.
+    context = payload.get("context")
+    if isinstance(context, str) and context.strip():
+        context = context.strip()
+        if len(context) > 24000:
+            context = context[:24000] + "\n\n[context truncated at 24000 characters]"
+    else:
+        context = None
+
     return {"question": question, "mode": mode, "country": country,
-            "max_steps": max_steps, "password": password, "history": history}
+            "max_steps": max_steps, "password": password, "history": history,
+            "context": context}

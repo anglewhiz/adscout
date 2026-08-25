@@ -247,7 +247,8 @@ class Analyst:
             anthropic_client = anthropic.Anthropic()
         self.ai = anthropic_client
 
-    def ask(self, question: str, history: list | None = None) -> AnalystResult:
+    def ask(self, question: str, history: list | None = None,
+            context: str | None = None) -> AnalystResult:
         # Seed with prior conversation turns (conversation mode). Normalise so
         # the sequence is valid for the API: starts with a user turn and never
         # has two consecutive user turns before the new question.
@@ -258,6 +259,22 @@ class Analyst:
             messages.pop(0)
         if messages and messages[-1]["role"] == "user":
             messages.pop()
+        # Carried-over context (a prior session's report or a draft) rides as a
+        # synthetic leading exchange, ahead of any thread history — unlike
+        # history turns it arrives uncapped (the caller bounds total size), so
+        # a full downloaded report survives intact.
+        if context and context.strip():
+            messages = [
+                {"role": "user", "content":
+                    "Context carried over from a previous session — a prior "
+                    "report or draft to build on:\n\n" + context.strip()},
+                {"role": "assistant", "content":
+                    "Noted. I'll build on this prior-session context: its "
+                    "figures keep their stated verification status and date, "
+                    "I won't re-derive what it already establishes, and I'll "
+                    "re-verify anything decision-critical rather than assume "
+                    "it is still current."},
+            ] + messages
         messages.append({"role": "user", "content": question})
         trace: list[ToolCall] = []
         screenshots: list[dict] = []

@@ -95,7 +95,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(run_analysis(
                 args["question"], mode=args["mode"], country=args["country"],
                 max_steps=args["max_steps"], password=args["password"],
-                history=args.get("history")))
+                history=args.get("history"),
+                context=args.get("context")))
         except AuthError as exc:
             self._send_json({"error": str(exc), "auth_required": True}, 401)
         except Exception as exc:  # surface a readable message to the UI

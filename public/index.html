@@ -82,6 +82,9 @@
     transition: border-color .15s, box-shadow .15s;
   }
   textarea { resize: vertical; min-height: 78px; line-height: 1.55; }
+  .ctx-panel { margin-top: 10px; }
+  .ctx-panel textarea { min-height: 64px; }
+  .ctx-actions { margin-top: 6px; }
   textarea::placeholder { color: var(--ink-faint); }
   textarea:focus, select:focus, input:focus {
     border-color: var(--primary); box-shadow: 0 0 0 3px rgba(94,106,210,.22);
@@ -366,7 +369,18 @@
     <div class="conv-row">
       <label class="switch"><input type="checkbox" id="convToggle" /><span class="track"><span class="knob"></span></span>Conversation mode</label>
       <span class="conv-hint" id="convHint">Keep context across follow-up questions.</span>
+      <button class="btn-sm" id="ctxToggle" type="button">Attach context…</button>
       <button class="btn-sm hidden" id="newConv" type="button">New conversation</button>
+    </div>
+
+    <div class="hidden ctx-panel" id="ctxPanel">
+      <textarea id="ctx" rows="4" placeholder="Paste a previous report (the JSON or MD download) or a draft to build on — it's sent with every question until you clear it."></textarea>
+      <div class="conv-row ctx-actions">
+        <button class="btn-sm" id="ctxFileBtn" type="button">Load file…</button>
+        <input type="file" id="ctxFile" accept=".json,.md,.txt,.markdown" class="hidden" />
+        <button class="btn-sm" id="ctxClear" type="button">Clear</button>
+        <span class="conv-hint" id="ctxHint"></span>
+      </div>
     </div>
 
     <div class="composer-foot">
@@ -1772,8 +1786,43 @@ function updateComposer() {
 function resetConversation() {
   history = [];
   $("out").innerHTML = "";
+  clearContext();
   updateComposer();
 }
+
+// --- carried-over context (previous report / draft) ----------------------
+const CTX_LIMIT = 24000;  // matches the server cap; beyond it the server truncates
+
+function updateCtxHint() {
+  const n = $("ctx").value.trim().length;
+  $("ctxHint").textContent = !n ? ""
+    : n > CTX_LIMIT
+      ? `≈${Math.round(n / 1000)}k chars — over the ${CTX_LIMIT / 1000}k limit, the server will truncate the tail`
+      : `≈${Math.round(n / 1000)}k chars attached — sent with every question`;
+  $("ctxToggle").textContent = n ? "Context attached ✓" : "Attach context…";
+}
+
+function clearContext() {
+  $("ctx").value = "";
+  $("ctxFile").value = "";
+  $("ctxPanel").classList.add("hidden");
+  updateCtxHint();
+}
+
+$("ctxToggle").onclick = () => {
+  $("ctxPanel").classList.toggle("hidden");
+  if (!$("ctxPanel").classList.contains("hidden")) $("ctx").focus();
+};
+$("ctx").addEventListener("input", updateCtxHint);
+$("ctxClear").onclick = clearContext;
+$("ctxFileBtn").onclick = () => $("ctxFile").click();
+$("ctxFile").addEventListener("change", () => {
+  const f = $("ctxFile").files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => { $("ctx").value = String(reader.result || ""); updateCtxHint(); };
+  reader.readAsText(f);
+});
 
 async function analyze() {
   const question = $("q").value.trim();
@@ -1823,6 +1872,7 @@ async function analyze() {
         max_steps: parseInt($("steps").value, 10) || 8,
         password,
         history: convMode ? history.slice(-12) : undefined,
+        context: $("ctx").value.trim() || undefined,
       }),
     });
     const raw = await r.text();
