@@ -1343,6 +1343,220 @@ function renderOffers(o) {
   return wrap;
 }
 
+// --- Affiliate bridge-campaign spec ---------------------------------------
+const BELIEF_LABEL = { vehicle: "Vehicle — can it work?", internal: "Internal — can I?", external: "External — do I have the resources?" };
+
+function bridgeToMarkdown(b) {
+  const L = [], c = b.campaign || {}, off = c.offer || {}, vet = b.product_vet || {},
+        dof = b.differentiated_offer || {}, msg = b.messaging || {}, ls = b.launch_sync || {},
+        trk = b.tracking || {};
+  const row = a => "| " + a.join(" | ") + " |";
+  L.push(`# Bridge Campaign Spec — ${c.name || off.product || ""}`.trim());
+  const facts = [off.product && `**Offer:** ${off.product}${off.network ? ` (${off.network})` : ""}`,
+    off.payout != null && `**Payout:** $${off.payout} (${off.payout_source || "?"})`,
+    c.niche && `**Niche:** ${c.niche}`, c.traffic_source && `**Traffic:** ${c.traffic_source}`,
+    c.geo && `**Geo:** ${c.geo}`].filter(Boolean);
+  if (facts.length) L.push(facts.join(" · "));
+  if (c.objective) L.push(c.objective);
+  if (c.avatar) L.push(`**Avatar:** ${c.avatar}`);
+
+  const vetRows = [["Notable brand", vet.notable_brand], ["Recurring commissions", vet.recurring_commissions],
+    ["Upsells", vet.upsells], ["Vendor markets itself", vet.vendor_markets_itself]]
+    .filter(([, v]) => v && (v.score != null || v.status || v.evidence));
+  if (vetRows.length || vet.user_belief) {
+    L.push("## Product Vet");
+    L.push(row(["Criterion", "Read", "Evidence"])); L.push(row(Array(3).fill("---")));
+    vetRows.forEach(([l, v]) => L.push(row([l, v.score != null ? `${v.score}/10` : (v.status || "—"), (v.evidence || "—").replace(/\|/g, "/")])));
+    if (vet.user_belief) L.push(row(["You believe in it", "human", String(vet.user_belief).replace(/\|/g, "/")]));
+    if (vet.adaptations) L.push(`> **Adaptations:** ${vet.adaptations}`);
+  }
+  if (has(dof.bonuses)) {
+    L.push(`## Differentiated Offer${dof.core_product ? ` — core: ${dof.core_product}` : ""}`);
+    L.push(row(["Bonus", "Belief", "Follow-up problem", "Format", "Value"])); L.push(row(Array(5).fill("---")));
+    dof.bonuses.forEach(x => L.push(row([x.name || "", x.belief || "", x.follow_up_problem || "", x.format || "", x.stated_value || "—"])));
+  }
+  if (has(msg.hook_url_ideas)) L.push(`## Hook URL Ideas (availability unchecked)\n\n${msg.hook_url_ideas.map(h => `- ${asText(h)}`).join("\n")}`);
+  if (has(msg.observed_angles)) { L.push("## Observed Angles"); msg.observed_angles.forEach(a => L.push(`- ${a.angle || asText(a)}${a.source ? ` — _${a.source}_` : ""}`)); }
+  if (has(msg.origin_story_beats)) { L.push("## Origin Story Beats"); msg.origin_story_beats.forEach((s, i) => L.push(`${i + 1}. ${asText(s)}`)); }
+  if (has(msg.social_proof_plan)) {
+    L.push("## Social Proof Plan");
+    L.push(row(["Proof", "Belief", "Status", "How to get"])); L.push(row(Array(4).fill("---")));
+    msg.social_proof_plan.forEach(p => L.push(row([p.proof || "", p.belief || "", p.status || "", p.how_to_get || "—"])));
+  }
+  if (ls.timing_call || ls.vendor_wave_evidence) {
+    L.push("## Launch Sync");
+    if (ls.vendor_wave_evidence) L.push(`- **Vendor wave:** ${ls.vendor_wave_evidence}`);
+    if (ls.timing_call) L.push(`- **Timing call:** ${ls.timing_call}`);
+  }
+  if (has(b.assets)) {
+    L.push("## Assets — prompts to pass downstream");
+    b.assets.forEach(a => {
+      L.push(`### ${a.id || a.title || "asset"} → ${a.handoff || "?"}${a.title && a.id ? ` — ${a.title}` : ""}`);
+      if (has(a.depends_on)) L.push(`_Depends on: ${a.depends_on.join(", ")}_`);
+      if (a.prompt) L.push("```\n" + a.prompt + "\n```");
+      if (a.notes) L.push(`> ${a.notes}`);
+    });
+  }
+  if (has(b.email_sequence)) {
+    L.push("## Belief-Journey Email Sequence");
+    b.email_sequence.forEach(e => {
+      L.push(`### Day ${e.day ?? "?"} — ${e.belief || ""}${e.subject_direction ? ` · ${e.subject_direction}` : ""}`);
+      if (e.prompt) L.push("```\n" + e.prompt + "\n```");
+    });
+  }
+  if (trk.utm_template || has(trk.link_placement_rules) || has(trk.conversion_events)) {
+    L.push("## Tracking");
+    if (trk.utm_template) L.push(`- **UTM template:** \`${trk.utm_template}\``);
+    (trk.link_placement_rules || []).forEach(r => L.push(`- ${asText(r)}`));
+    if (has(trk.conversion_events)) L.push(`- **Conversion events:** ${trk.conversion_events.map(asText).join(", ")}`);
+  }
+  if (has(b.human_steps)) { L.push("## Human Steps"); b.human_steps.forEach((s, i) => L.push(`${i + 1}. **${s.step || ""}**${s.what_to_learn ? ` — ${s.what_to_learn}` : ""}`)); }
+  if (has(b.assumptions)) { L.push("## Assumptions"); b.assumptions.forEach(a => L.push(`- ${asText(a)}`)); }
+  return joinMd(L);
+}
+
+function renderBridge(b) {
+  const wrap = document.createElement("div");
+  const esc = s => escapeHtml(String(s ?? ""));
+  const c = b.campaign || {}, off = c.offer || {}, vet = b.product_vet || {},
+        dof = b.differentiated_offer || {}, msg = b.messaging || {}, ls = b.launch_sync || {},
+        trk = b.tracking || {};
+  const slug = (c.name || off.product || "campaign").toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "campaign";
+
+  wrap.appendChild(sectionHead("Bridge campaign spec"));
+
+  const actions = el("div", "json-actions");
+  const mkBtn = (label, fn) => { const btn = el("button", "btn-sm", label); btn.type = "button"; btn.onclick = fn; return btn; };
+  const copyBtn = (label, textFn) => mkBtn(label, (e) => {
+    navigator.clipboard.writeText(textFn()).then(() => { const t = e.target.textContent; e.target.textContent = "Copied ✓"; setTimeout(() => e.target.textContent = t === "Copied ✓" ? label : t, 1500); });
+  });
+  const pretty = JSON.stringify(b, null, 2);
+  actions.appendChild(copyBtn("Copy JSON", () => pretty));
+  actions.appendChild(mkBtn("Download JSON", () => download(`bridge-${slug}.json`, pretty, "application/json")));
+  actions.appendChild(mkBtn("Download MD", () => download(`bridge-${slug}.md`, bridgeToMarkdown(b), "text/markdown")));
+  wrap.appendChild(actions);
+
+  if (c.name || off.product) {
+    const vw = el("div", "verdict-wrap");
+    vw.innerHTML = `<span class="verdict supported">${esc(c.name || off.product)}</span>`;
+    wrap.appendChild(vw);
+  }
+  let h = "";
+  const top = [off.product, off.network, c.traffic_source, c.geo].filter(Boolean).map(esc).join(" · ");
+  if (top) h += `<div class="top">◆ ${top}</div>`;
+  if (c.objective) h += `<div class="rec">${esc(c.objective)}</div>`;
+  const parts = [];
+  if (off.payout != null) parts.push(`<strong>Payout:</strong> $${esc(off.payout)} (${esc(off.payout_source || "?")})`);
+  if (c.avatar) parts.push(`<strong>Avatar:</strong> ${esc(c.avatar)}`);
+  if (parts.length) h += `<div class="rec">${parts.join(" · ")}</div>`;
+  if (h) wrap.appendChild(el("div", "research-head", h));
+
+  const table = (title, cols, rows, mapRow) => {
+    if (!has(rows)) return;
+    wrap.appendChild(el("div", "rep-h", title));
+    const tw = el("div", "tbl-wrap");
+    let t = '<table class="kw-table"><thead><tr>' + cols.map(x => `<th>${x}</th>`).join("") + "</tr></thead><tbody>";
+    rows.forEach(r => { t += "<tr>" + mapRow(r).map(x => `<td>${x}</td>`).join("") + "</tr>"; });
+    tw.innerHTML = t + "</tbody></table>";
+    wrap.appendChild(tw);
+  };
+
+  const vetRows = [["Notable brand", vet.notable_brand], ["Recurring commissions", vet.recurring_commissions],
+    ["Upsells", vet.upsells], ["Vendor markets itself", vet.vendor_markets_itself]]
+    .filter(([, v]) => v && (v.score != null || v.status || v.evidence));
+  if (vet.user_belief) vetRows.push(["You believe in it", { status: "human step", evidence: vet.user_belief }]);
+  table("Product vet (framework criteria, with receipts)", ["Criterion", "Read", "Evidence"], vetRows,
+    ([l, v]) => [`<strong>${esc(l)}</strong>`, v.score != null ? `${esc(v.score)}/10` : esc(v.status || "—"), esc(v.evidence || "—")]);
+  if (vet.adaptations) wrap.appendChild(el("div", "rep-p", "Adaptations: " + esc(vet.adaptations)));
+
+  table("Bonus stack (the differentiated offer)", ["Bonus", "Belief", "Follow-up problem", "Format", "Value"], dof.bonuses,
+    x => [`<strong>${esc(x.name)}</strong>`, esc(BELIEF_LABEL[x.belief] || x.belief || "—"), esc(x.follow_up_problem || "—"), esc(x.format || "—"), esc(x.stated_value || "—")]);
+
+  if (has(msg.hook_url_ideas) || has(msg.observed_angles) || has(msg.origin_story_beats)) {
+    wrap.appendChild(el("div", "rep-h", "Messaging"));
+    if (has(msg.hook_url_ideas))
+      wrap.appendChild(el("div", "rep-p", "Hook URLs (availability unchecked): " + msg.hook_url_ideas.map(x => esc(asText(x))).join(" · ")));
+    if (has(msg.observed_angles)) {
+      const ul = el("ul", "rep-list");
+      msg.observed_angles.forEach(a => ul.appendChild(el("li", null, `${esc(a.angle || asText(a))}${a.source ? ` — <em>${esc(a.source)}</em>` : ""}`)));
+      wrap.appendChild(ul);
+    }
+    if (has(msg.origin_story_beats)) {
+      const ol = el("ol", "rep-list");
+      msg.origin_story_beats.forEach(s => ol.appendChild(el("li", null, esc(asText(s)))));
+      wrap.appendChild(ol);
+    }
+  }
+  table("Social proof plan", ["Proof", "Belief", "Status", "How to get"], msg.social_proof_plan,
+    p => [esc(p.proof), esc(p.belief || "—"), esc(p.status || "—"), esc(p.how_to_get || "—")]);
+
+  if (ls.timing_call || ls.vendor_wave_evidence) {
+    wrap.appendChild(el("div", "rep-h", "Launch sync (ride the vendor's wave)"));
+    const g = el("div", "rep-cards");
+    let inner = "";
+    if (ls.vendor_wave_evidence) inner += `<div class="d">${esc(ls.vendor_wave_evidence)}</div>`;
+    if (ls.timing_call) inner += `<div class="u"><strong>Timing call:</strong> ${esc(ls.timing_call)}</div>`;
+    g.appendChild(el("div", "rep-card", `<div class="t">Vendor wave</div>` + inner));
+    wrap.appendChild(g);
+  }
+
+  const promptBlock = (title, sub, promptText) => {
+    const det = el("details", "json-details");
+    det.appendChild(el("summary", null, title));
+    if (sub) det.appendChild(el("div", "rep-p", sub));
+    const acts = el("div", "json-actions");
+    acts.appendChild(copyBtn("Copy prompt", () => promptText));
+    det.appendChild(acts);
+    const pre = el("pre", "json-block"); pre.textContent = promptText;
+    det.appendChild(pre);
+    return det;
+  };
+  if (has(b.assets)) {
+    wrap.appendChild(el("div", "rep-h", "Assets — prompts to pass downstream"));
+    b.assets.forEach(a => {
+      const label = `${a.id || a.title || "asset"} → ${a.handoff || "?"}`;
+      const sub = [a.title, has(a.depends_on) ? `depends on: ${a.depends_on.join(", ")}` : "", a.notes]
+        .filter(Boolean).map(esc).join(" · ");
+      wrap.appendChild(promptBlock(label, sub, a.prompt || ""));
+    });
+  }
+  if (has(b.email_sequence)) {
+    wrap.appendChild(el("div", "rep-h", "Belief-journey email sequence"));
+    b.email_sequence.forEach(e => {
+      const label = `Day ${e.day ?? "?"} — ${e.belief || ""}`;
+      wrap.appendChild(promptBlock(label, e.subject_direction ? esc(e.subject_direction) : "", e.prompt || ""));
+    });
+  }
+
+  if (trk.utm_template || has(trk.link_placement_rules) || has(trk.conversion_events)) {
+    wrap.appendChild(el("div", "rep-h", "Tracking"));
+    const ul = el("ul", "rep-list");
+    if (trk.utm_template) ul.appendChild(el("li", null, `<strong>UTM:</strong> <code>${esc(trk.utm_template)}</code>`));
+    (trk.link_placement_rules || []).forEach(r => ul.appendChild(el("li", null, esc(asText(r)))));
+    if (has(trk.conversion_events)) ul.appendChild(el("li", null, `<strong>Events:</strong> ${trk.conversion_events.map(x => esc(asText(x))).join(", ")}`));
+    wrap.appendChild(ul);
+  }
+  if (has(b.human_steps)) {
+    wrap.appendChild(el("div", "rep-h", "Human steps"));
+    const ol = el("ol", "rep-list");
+    b.human_steps.forEach(s => ol.appendChild(el("li", null, `<strong>${esc(s.step || "")}</strong>${s.what_to_learn ? ` — ${esc(s.what_to_learn)}` : ""}`)));
+    wrap.appendChild(ol);
+  }
+  if (has(b.assumptions)) {
+    wrap.appendChild(el("div", "rep-h", "Assumptions"));
+    const ul = el("ul", "rep-list warn");
+    b.assumptions.forEach(a => ul.appendChild(el("li", null, esc(asText(a)))));
+    wrap.appendChild(ul);
+  }
+
+  const det = el("details", "json-details");
+  det.appendChild(el("summary", null, "Raw JSON object"));
+  const pre = el("pre", "json-block"); pre.textContent = pretty;
+  det.appendChild(pre);
+  wrap.appendChild(det);
+  return wrap;
+}
+
 function buildResultCard(data) {
   const card = document.createElement("div");
   card.className = "card";
@@ -1354,8 +1568,19 @@ function buildResultCard(data) {
     card.appendChild(b);
   }
 
-  if (data.offers) {
+  if (data.bridge) {
+    card.appendChild(renderBridge(data.bridge));
+  } else if (data.offers) {
     card.appendChild(renderOffers(data.offers));
+  } else if (/"launch_sync"|"hook_url_ideas"/.test(data.answer || "")) {
+    const salvagedBridge = salvageResearch(data.answer);
+    if (salvagedBridge) card.appendChild(renderBridge(salvagedBridge));
+    else {
+      const pre = document.createElement("pre");
+      pre.className = "json-block";
+      pre.textContent = data.answer;
+      card.appendChild(pre);
+    }
   } else if (data.validation) {
     card.appendChild(renderValidation(data.validation));
   } else if (data.research) {

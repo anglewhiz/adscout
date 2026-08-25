@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from .client import SpyFuClient
 from .content_frames import CONTENT_FRAMES
 from .copywriting import COPY_FRAME
+from .bridge import BRIDGE_INSTRUCTIONS
 from .offers import OFFERS_INSTRUCTIONS
 from .research import RESEARCH_INSTRUCTIONS, extract_research
 from .strategy import STRATEGY_FRAME
@@ -162,6 +163,15 @@ def _wants_offer_scouting(question: str) -> bool:
                                                  "payout", "affiliate"))
 
 
+def _wants_bridge_campaign(question: str) -> bool:
+    """Detect a request to spec out an affiliate bridge campaign."""
+    q = question.lower()
+    return any(t in q for t in ("bridge campaign", "bridge funnel",
+                                "campaign spec", "campaign by spec",
+                                "affiliate campaign plan",
+                                "build a campaign for", "spec the campaign"))
+
+
 def _wants_keyword_research(question: str) -> bool:
     """Detect a request for a structured keyword/niche research object."""
     q = question.lower()
@@ -196,6 +206,8 @@ class AnalystResult:
     validation: dict | None = None
     # Structured affiliate-offer scouting report (offer-scouting mode only).
     offers: dict | None = None
+    # Structured bridge-campaign spec (bridge-campaign mode only).
+    bridge: dict | None = None
 
 
 class Analyst:
@@ -259,8 +271,13 @@ class Analyst:
         # pages/assets are named by buildable framework slugs. All conditional
         # so ordinary queries stay lean.
         validation_mode = _wants_validation(question)
-        offers_mode = (not validation_mode) and _wants_offer_scouting(question)
-        research_mode = (not validation_mode and not offers_mode) \
+        # Bridge outranks offers: a bridge-campaign ask usually names the
+        # offer too, and the spec is the more specific request.
+        bridge_mode = (not validation_mode) and _wants_bridge_campaign(question)
+        offers_mode = (not validation_mode and not bridge_mode) \
+            and _wants_offer_scouting(question)
+        research_mode = (not validation_mode and not bridge_mode
+                         and not offers_mode) \
             and _wants_keyword_research(question)
         max_tokens = self.max_tokens
         if validation_mode:
@@ -268,6 +285,12 @@ class Analyst:
             # 8192 truncated real reports once mined insights fattened the
             # evidence (risks/name_check/next_actions fell off the end).
             max_tokens = max(self.max_tokens, 16384)
+        elif bridge_mode:
+            # Copy playbook + content frames ride along: every asset prompt
+            # in the spec should lean on real frameworks and catalog slugs.
+            system = (SYSTEM_PROMPT + "\n\n" + BRIDGE_INSTRUCTIONS
+                      + "\n\n" + COPY_FRAME + "\n\n" + CONTENT_FRAMES)
+            max_tokens = max(self.max_tokens, 24576)  # many self-contained prompts
         elif offers_mode:
             # Content frames ride along so presell recommendations name real
             # catalog slugs (advertorial / quiz / listicle...).
@@ -287,7 +310,8 @@ class Analyst:
         # answers in the thread act as format precedent the model imitates.
         # When a JSON mode is active on a follow-up, pin the format explicitly
         # on the new question so history can't override the mode instructions.
-        if (validation_mode or offers_mode or research_mode) and len(messages) > 1:
+        if (validation_mode or bridge_mode or offers_mode or research_mode) \
+                and len(messages) > 1:
             messages[-1] = {"role": "user", "content": question +
                 "\n\n(Answer with the single JSON object required by the mode "
                 "instructions — ignore the format of earlier answers in this "
@@ -327,7 +351,7 @@ class Analyst:
                     # The nudge must match the active mode — telling a JSON-mode
                     # run to produce "## Answer / ## Evidence" Markdown overrides
                     # the mode instructions and loses the structured report.
-                    if validation_mode or offers_mode or research_mode:
+                    if validation_mode or bridge_mode or offers_mode or research_mode:
                         nudge = ("Now return the single JSON object in a ```json "
                                  "fenced block exactly as the mode instructions "
                                  "specify — no prose outside it. Use the tool "
@@ -343,10 +367,11 @@ class Analyst:
                 research = extract_research(answer) if research_mode else None
                 validation = extract_research(answer) if validation_mode else None
                 offers = extract_research(answer) if offers_mode else None
+                bridge = extract_research(answer) if bridge_mode else None
                 return AnalystResult(
                     answer=answer or _EMPTY_FALLBACK, trace=trace, steps=step,
                     screenshots=screenshots, creatives=creatives, research=research,
-                    validation=validation, offers=offers)
+                    validation=validation, offers=offers, bridge=bridge)
 
             # Record the assistant turn (with its tool_use blocks) verbatim.
             messages.append({"role": "assistant", "content": resp.content})
